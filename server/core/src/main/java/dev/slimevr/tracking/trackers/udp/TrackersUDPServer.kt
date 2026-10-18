@@ -661,7 +661,7 @@ class TrackersUDPServer(private val port: Int, name: String, private val tracker
 	companion object {
 		// Battery calibration: voltage read at 0% and at 100%
 		private const val BATTERY_EMPTY_VOLTAGE = 2.60f
-		private const val BATTERY_FULL_VOLTAGE = 4.30f
+		private const val BATTERY_FULL_VOLTAGE = 4.20f
 
 		/**
 		 * Change between IMU axes and OpenGL/SteamVR axes
