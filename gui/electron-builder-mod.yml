@@ -1,0 +1,50 @@
+# Installeur Windows de SlimeVR Mod (version modifiee, separee de SlimeVR officiel)
+appId: dev.slimevr.SlimeVR.mod
+productName: SlimeVR Mod
+
+directories:
+  output: dist/mod
+
+asar: true
+asarUnpack:
+  - out/main/chunks/*.jar
+
+electronLanguages:
+  - en-US
+
+files:
+  - out/**/*
+  - index.html
+  - package.json
+  - node_modules/**
+  - "!node_modules/*/{README,readme,README.md,readme.md,CHANGELOG,CHANGELOG.md,changelog.md}"
+  - "!node_modules/*/{test,tests,__tests__,docs,doc,example,examples}"
+  - "!node_modules/*/.{git,github,vscode,editorconfig,eslintrc,prettierrc}"
+  - "!node_modules/**/*.{map,ts,tsx,d.ts}"
+  - "!**/.DS_Store"
+
+win:
+  target: nsis
+  icon: "./electron/resources/icons/icon.ico"
+  extraFiles:
+    - from: "../server/desktop/build/libs/slimevr.jar"
+      to: "."
+    - from: "../server/core/resources"
+      to: "."
+      filter: ["**/*"]
+    # Java embarque, pour ne rien avoir a installer sur l'autre PC
+    - from: "./build-mod/jre"
+      to: "jre"
+    # Pilote SteamVR, enregistre aupres de SteamVR a l'installation
+    - from: "./build-mod/slimevr-openvr-driver-win64"
+      to: "slimevr-openvr-driver-win64"
+
+nsis:
+  artifactName: "SlimeVR-Mod-Installeur.${ext}"
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: "SlimeVR Mod"
+  include: "./electron/resources/installer-mod.nsh"
