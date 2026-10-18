@@ -492,6 +492,12 @@ export function InterfaceSettings() {
                   value={'snep'}
                   colors="!bg-snep"
                 />
+                <ThemeSelector
+                  control={control}
+                  name="appearance.theme"
+                  value={'noir-blanc'}
+                  colors="!bg-noir-blanc"
+                />
               </div>
             </div>
 

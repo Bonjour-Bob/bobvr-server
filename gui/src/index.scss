@@ -433,3 +433,30 @@ a,
   -webkit-user-select: none;
   user-select: none;
 }
+
+/* Noir & blanc : fond noir pur, texte blanc, nuances de gris */
+:root[data-theme='noir-blanc'] {
+  --background-10: 255, 255, 255;
+  --background-20: 190, 190, 190;
+  --background-30: 140, 140, 140;
+  --background-40: 90, 90, 90;
+  --background-50: 52, 52, 52;
+  --background-60: 32, 32, 32;
+  --background-70: 18, 18, 18;
+  --background-80: 8, 8, 8;
+  --background-90: 0, 0, 0;
+
+  --accent-background-10: 255, 255, 255;
+  --accent-background-20: 110, 110, 110;
+  --accent-background-30: 70, 70, 70;
+  --accent-background-40: 45, 45, 45;
+  --accent-background-50: 24, 24, 24;
+
+  --success: 80, 232, 151;
+  --warning: 255, 225, 53;
+  --critical: 223, 109, 140;
+  --special: 255, 255, 255;
+  --window-icon-stroke: 255, 255, 255;
+
+  --default-color: 255, 255, 255;
+}
