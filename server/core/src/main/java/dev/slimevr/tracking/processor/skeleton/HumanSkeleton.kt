@@ -190,10 +190,6 @@ class HumanSkeleton(
 	var computedLeftHandTracker: Tracker? = null
 	var computedRightHandTracker: Tracker? = null
 
-	// Extra ankle outputs (lower leg bone), only shared by the SteamVR bridge
-	var computedLeftAnkleTracker: Tracker? = null
-	var computedRightAnkleTracker: Tracker? = null
-
 	// Toggles
 	private var extendedSpineModel = false
 	private var extendedPelvisModel = false
@@ -229,7 +225,6 @@ class HumanSkeleton(
 	init {
 		assembleSkeleton()
 		setComputedTrackers(humanPoseManager.computedTrackers)
-		setComputedAnkleTrackers(humanPoseManager.ankleTrackers)
 	}
 
 	constructor(
@@ -519,19 +514,6 @@ class HumanSkeleton(
 			TrackerPosition.LEFT_HAND -> computedLeftHandTracker = tracker
 			TrackerPosition.RIGHT_HAND -> computedRightHandTracker = tracker
 			else -> {}
-		}
-	}
-
-	/**
-	 * Set the ankle output trackers from list
-	 */
-	private fun setComputedAnkleTrackers(trackers: List<Tracker>) {
-		for (t in trackers) {
-			when (t.trackerPosition) {
-				TrackerPosition.LEFT_LOWER_LEG -> computedLeftAnkleTracker = t
-				TrackerPosition.RIGHT_LOWER_LEG -> computedRightAnkleTracker = t
-				else -> {}
-			}
 		}
 	}
 
@@ -1182,11 +1164,6 @@ class HumanSkeleton(
 		updateComputedTracker(computedRightElbowTracker, rightElbowTrackerBone)
 		updateComputedTracker(computedLeftHandTracker, leftHandTrackerBone)
 		updateComputedTracker(computedRightHandTracker, rightHandTrackerBone)
-
-		// The lower leg bone ends at the ankle joint, and its orientation comes
-		// straight from the lower leg tracker.
-		updateComputedTracker(computedLeftAnkleTracker, leftLowerLegBone)
-		updateComputedTracker(computedRightAnkleTracker, rightLowerLegBone)
 	}
 
 	private fun updateComputedTracker(computedTracker: Tracker?, trackerBone: Bone) {

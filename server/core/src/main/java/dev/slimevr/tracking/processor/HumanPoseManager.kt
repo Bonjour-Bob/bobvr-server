@@ -29,13 +29,6 @@ import kotlin.math.*
  */
 class HumanPoseManager(val server: VRServer?) {
 	val computedTrackers: MutableList<Tracker> = FastList()
-
-	/**
-	 * Extra outputs for the left and right ankle (lower leg bone), kept apart from
-	 * [computedTrackers] on purpose: they have no TrackerRole of their own, so only
-	 * the SteamVR bridge knows how to share them (on spare roles).
-	 */
-	val ankleTrackers: MutableList<Tracker> = FastList()
 	private val onSkeletonUpdated: MutableList<Consumer<HumanSkeleton>> = FastList()
 	private val skeletonConfigManager = SkeletonConfigManager(true, this)
 
@@ -229,23 +222,6 @@ class HumanPoseManager(val server: VRServer?) {
 				),
 			)
 
-		ankleTrackers
-			.add(
-				makeComputedTracker(
-					"human://LEFT_ANKLE",
-					"Computed left ankle",
-					TrackerPosition.LEFT_LOWER_LEG,
-				),
-			)
-		ankleTrackers
-			.add(
-				makeComputedTracker(
-					"human://RIGHT_ANKLE",
-					"Computed right ankle",
-					TrackerPosition.RIGHT_LOWER_LEG,
-				),
-			)
-
 		connectComputedHumanPoseTrackers()
 	}
 
@@ -260,9 +236,6 @@ class HumanPoseManager(val server: VRServer?) {
 
 	private fun connectComputedHumanPoseTrackers() {
 		for (t in computedTrackers) {
-			t.status = TrackerStatus.OK
-		}
-		for (t in ankleTrackers) {
 			t.status = TrackerStatus.OK
 		}
 	}

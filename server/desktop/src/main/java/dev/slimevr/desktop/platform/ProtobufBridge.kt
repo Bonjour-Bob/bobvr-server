@@ -5,7 +5,6 @@ import dev.slimevr.bridge.BridgeThread
 import dev.slimevr.bridge.ISteamVRBridge
 import dev.slimevr.desktop.platform.ProtobufMessages.*
 import dev.slimevr.tracking.trackers.Tracker
-import dev.slimevr.tracking.trackers.TrackerRole
 import dev.slimevr.tracking.trackers.TrackerStatus
 import dev.slimevr.tracking.trackers.TrackerStatus.Companion.getById
 import dev.slimevr.tracking.trackers.TrackerUtils
@@ -270,12 +269,6 @@ abstract class ProtobufBridge(@JvmField protected val bridgeName: String) : ISte
 		}
 	}
 
-	/**
-	 * The role sent to the other side for a shared tracker. Bridges can override
-	 * this for outputs that don't have a TrackerRole through their TrackerPosition.
-	 */
-	protected open fun getBridgeRole(tracker: Tracker): TrackerRole? = tracker.trackerPosition?.trackerRole
-
 	@VRServerThread
 	protected fun reconnected() {
 		for (tracker in sharedTrackers) {
@@ -284,7 +277,7 @@ abstract class ProtobufBridge(@JvmField protected val bridgeName: String) : ISte
 				.setTrackerId(tracker.id)
 				.setTrackerName(tracker.name)
 				.setTrackerSerial(tracker.name)
-				.setTrackerRole(getBridgeRole(tracker)!!.id)
+				.setTrackerRole(tracker.trackerPosition!!.trackerRole!!.id)
 			sendMessage(ProtobufMessage.newBuilder().setTrackerAdded(builder).build())
 		}
 	}
@@ -307,7 +300,7 @@ abstract class ProtobufBridge(@JvmField protected val bridgeName: String) : ISte
 			.setTrackerId(tracker.id)
 			.setTrackerName(tracker.name)
 			.setTrackerSerial(tracker.name)
-			.setTrackerRole(getBridgeRole(tracker)!!.id)
+			.setTrackerRole(tracker.trackerPosition!!.trackerRole!!.id)
 		sendMessage(ProtobufMessage.newBuilder().setTrackerAdded(builder).build())
 	}
 
