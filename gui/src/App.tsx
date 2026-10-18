@@ -4,6 +4,7 @@ import { Home } from './components/home/Home';
 import { MainLayout } from './components/MainLayout';
 import { AppContextProvider } from './components/providers/AppContext';
 import { GeneralSettings } from './components/settings/pages/GeneralSettings';
+import { DanceSettings } from './components/settings/pages/DanceSettings';
 import { Serial } from './components/settings/pages/Serial';
 import { SettingsLayout } from './components/settings/SettingsLayout';
 import {
@@ -138,6 +139,7 @@ function Layout() {
           >
             <Route path="firmware-tool" element={<FirmwareToolSettings />} />
             <Route path="trackers" element={<GeneralSettings />} />
+            <Route path="dance" element={<DanceSettings />} />
             <Route path="serial" element={<Serial />} />
             <Route path="osc/router" element={<OSCRouterSettings />} />
             <Route path="osc/vrchat" element={<VRCOSCSettings />} />

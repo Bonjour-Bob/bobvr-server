@@ -48,6 +48,7 @@ export function SettingsSidebar() {
       <div className="flex flex-col gap-3">
         <Typography variant="section-title" id="settings-sidebar-general" />
         <div className="flex flex-col gap-2">
+          <SettingsLink to="/settings/dance" id="settings-sidebar-dance" />
           <SettingsLink
             to="/settings/trackers"
             scrollTo="steamvr"

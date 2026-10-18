@@ -481,6 +481,7 @@ mounting_selection_menu-close = Close
 ## Sidebar settings
 settings-sidebar-title = Settings
 settings-sidebar-general = General
+settings-sidebar-dance = Dance
 settings-sidebar-steamvr = SteamVR
 settings-sidebar-tracker_mechanics = Tracker mechanics
 settings-sidebar-stay_aligned = Stay Aligned

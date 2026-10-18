@@ -505,6 +505,7 @@ mounting_selection_menu-close = Fermer
 
 settings-sidebar-title = Réglages
 settings-sidebar-general = Général
+settings-sidebar-dance = Danse
 settings-sidebar-steamvr = SteamVR
 settings-sidebar-tracker_mechanics = Paramètres des capteurs
 settings-sidebar-stay_aligned = Garder Aligné
