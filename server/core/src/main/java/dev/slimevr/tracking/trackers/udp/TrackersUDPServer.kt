@@ -490,8 +490,14 @@ class TrackersUDPServer(private val port: Int, name: String, private val tracker
 				// Below this the tracker is definitely dead if everything is working properly
 				if (packet.voltage != null) {
 					if (packet.voltage!! > 2f && packet.voltage!! < 6f) {
+						// Recompute the level from the voltage with our own calibration
+						// instead of trusting the firmware's percentage
+						val level = (
+							(packet.voltage!! - BATTERY_EMPTY_VOLTAGE) /
+								(BATTERY_FULL_VOLTAGE - BATTERY_EMPTY_VOLTAGE)
+							).coerceIn(0f, 1f)
 						// Assuming floor when converting to int
-						it.batteryLevel = if (packet.level < 0.01f) -1f else packet.level * 100
+						it.batteryLevel = if (level < 0.01f) -1f else level * 100
 					} else {
 						it.batteryLevel = 0f
 					}
@@ -653,6 +659,10 @@ class TrackersUDPServer(private val port: Int, name: String, private val tracker
 	}
 
 	companion object {
+		// Battery calibration: voltage read at 0% and at 100%
+		private const val BATTERY_EMPTY_VOLTAGE = 2.43f
+		private const val BATTERY_FULL_VOLTAGE = 4.30f
+
 		/**
 		 * Change between IMU axes and OpenGL/SteamVR axes
 		 */
