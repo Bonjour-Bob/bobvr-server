@@ -423,6 +423,8 @@ const spawnServer = async () => {
   const serverProcess = spawn(javaBin, serverArgs, {
     cwd: sharedDir,
     shell: false,
+    // Never show a console window for the Java server
+    windowsHide: true,
     env:
       platform === 'windows'
         ? {

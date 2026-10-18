@@ -84,7 +84,9 @@ export const findSystemJRE = async (sharedDir: string) => {
     if (!path) continue;
 
     const version = await new Promise<number | null>((resolve) => {
-      const process = spawn(path, ['-jar', javaVersionJar], {});
+      const process = spawn(path, ['-jar', javaVersionJar], {
+        windowsHide: true,
+      });
 
       let version: number | null = null;
 
