@@ -137,7 +137,7 @@ export function BodyPartIcon({
   const { currentLocales } = useLocaleConfig();
   return (
     <svg width={width} height={width}>
-      <rect width={width} height={width} rx="2" fill="#56407B" />
+      <rect width={width} height={width} rx="2" fill="#3a3a3a" />
       {mapPart[bodyPart]({ width, currentLocales })}
     </svg>
   );

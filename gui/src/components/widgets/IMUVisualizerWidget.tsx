@@ -27,7 +27,7 @@ import { Vector3Object, Vector3FromVec3fT } from '@/maths/vector3';
 import { ErrorBoundary } from 'react-error-boundary';
 import { StayAlignedInfo } from '@/components/stay-aligned/StayAlignedInfo';
 
-const GROUND_COLOR = '#4444aa';
+const GROUND_COLOR = '#4d4d4d';
 const MODEL_SCALE = 6.5;
 const CANVAS_HEIGHT = 200;
 

@@ -31,8 +31,9 @@ export class BasedSkeletonHelper extends LineSegments2 {
     const vertices = [];
     const colors = [];
 
-    const color1 = new Color(0, 0, 1);
-    const color2 = new Color(0, 1, 0);
+    // Every bone is drawn in plain white
+    const color1 = new Color('white');
+    const color2 = new Color('white');
 
     for (let i = 0; i < bones.length; i++) {
       const bone = bones[i];
@@ -41,7 +42,7 @@ export class BasedSkeletonHelper extends LineSegments2 {
         vertices.push(0, 0, 0);
         vertices.push(0, 0, 0);
         if (bone.parent instanceof BoneKind) {
-          const color = bone.parent.boneColor;
+          const color = color1;
           colors.push(color.r, color.g, color.b);
           colors.push(color.r, color.g, color.b);
         } else {
