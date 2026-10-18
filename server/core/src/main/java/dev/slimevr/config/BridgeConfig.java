@@ -27,6 +27,14 @@ public class BridgeConfig {
 		this.trackers.put(role.name().toLowerCase(), val);
 	}
 
+	/**
+	 * Same as {@link #getBridgeTrackerRole} but for outputs that have no
+	 * TrackerRole of their own (like the extra ankle trackers).
+	 */
+	public boolean getBridgeTrackerKey(String key, boolean def) {
+		return trackers.getOrDefault(key, def);
+	}
+
 	public Map<String, Boolean> getTrackers() {
 		return trackers;
 	}

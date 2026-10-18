@@ -8,6 +8,7 @@ import dev.slimevr.bridge.ISteamVRBridge
 import dev.slimevr.config.BridgeConfig
 import dev.slimevr.desktop.platform.ProtobufMessages.*
 import dev.slimevr.protocol.rpc.settings.RPCSettingsHandler
+import dev.slimevr.tracking.processor.skeleton.HumanSkeleton
 import dev.slimevr.tracking.trackers.DeviceOrigin
 import dev.slimevr.tracking.trackers.Tracker
 import dev.slimevr.tracking.trackers.TrackerPosition
@@ -122,7 +123,29 @@ abstract class SteamVRBridge(
 				config.getBridgeTrackerRole(role, false),
 			)
 		}
+
+		// The ankles are only sent by the main driver bridge (the feeder shares
+		// nothing). Set `ankles: false` under this bridge's `trackers` in
+		// vrconfig.yml to stop sending them.
+		if (bridgeSettingsKey == "steamvr" && config.getBridgeTrackerKey(ANKLE_TRACKERS_KEY, true)) {
+			for (tr in server.humanPoseManager.ankleTrackers) {
+				addSharedTracker(tr)
+			}
+		}
 		runnerThread.start()
+	}
+
+	/**
+	 * The body position of an ankle output tracker, or null for any other tracker.
+	 */
+	private fun ankleBodyPosition(tracker: Tracker): TrackerPosition? = if (server.humanPoseManager.ankleTrackers.contains(tracker)) tracker.trackerPosition else null
+
+	// SteamVR has no ankle role, so the ankle outputs borrow the shoulder roles,
+	// which SlimeVR doesn't send otherwise.
+	override fun getBridgeRole(tracker: Tracker): TrackerRole? = when (ankleBodyPosition(tracker)) {
+		TrackerPosition.LEFT_LOWER_LEG -> TrackerRole.LEFT_SHOULDER
+		TrackerPosition.RIGHT_LOWER_LEG -> TrackerRole.RIGHT_SHOULDER
+		else -> super.getBridgeRole(tracker)
 	}
 
 	@VRServerThread
@@ -174,7 +197,31 @@ abstract class SteamVRBridge(
 			}
 			changeShareSettings(role, shouldShare)
 		}
+		updateAnkleShareSettings(skeleton)
 		return true
+	}
+
+	/**
+	 * Shares an ankle output only when there is a lower leg tracker that doesn't
+	 * come from SteamVR, and only if the ankles aren't turned off in the config.
+	 */
+	@VRServerThread
+	private fun updateAnkleShareSettings(skeleton: HumanSkeleton) {
+		if (bridgeSettingsKey != "steamvr") return
+		val enabled = config.getBridgeTrackerKey(ANKLE_TRACKERS_KEY, true)
+		val ankles = listOf(
+			skeleton.computedLeftAnkleTracker to skeleton.leftLowerLegTracker,
+			skeleton.computedRightAnkleTracker to skeleton.rightLowerLegTracker,
+		)
+		for ((output, input) in ankles) {
+			if (output == null) continue
+			val hasInput = input != null && input.device?.origin != DeviceOrigin.STEAMVR
+			if (enabled && hasInput) {
+				addSharedTracker(output)
+			} else if (sharedTrackers.contains(output)) {
+				removeSharedTracker(output)
+			}
+		}
 	}
 
 	override fun getAutomaticSharedTrackers(): Boolean = config.automaticSharedTrackersToggling
@@ -286,7 +333,10 @@ abstract class SteamVRBridge(
 		var isCharging = false
 
 		val allTrackers = instance.allTrackers
-		val role = localTracker.trackerPosition?.trackerRole ?: return
+		val role = getBridgeRole(localTracker) ?: return
+		// An ankle output borrows a shoulder role, but its battery is the one of
+		// the lower leg tracker.
+		val bodyPosition = ankleBodyPosition(localTracker) ?: getByTrackerRole(role) ?: return
 
 		val batteryTrackers: MutableList<Tracker?> = FastList()
 
@@ -298,7 +348,7 @@ abstract class SteamVRBridge(
 			.add(
 				getTrackerForSkeleton(
 					allTrackers,
-					getByTrackerRole(role) ?: return,
+					bodyPosition,
 				),
 			)
 		when (role) {
@@ -511,5 +561,10 @@ abstract class SteamVRBridge(
 	@BridgeThread
 	protected fun reportConnected() {
 		connected = true
+	}
+
+	companion object {
+		// Key in the bridge's `trackers` config for the extra ankle outputs
+		const val ANKLE_TRACKERS_KEY = "ankles"
 	}
 }
