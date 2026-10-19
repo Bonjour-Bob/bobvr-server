@@ -71,6 +71,9 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		private const val MAX_DISENGAGEMENT_OFFSET = 0.30f
 		private const val DEFAULT_ARM_DISTANCE = 0.15f
 		private const val MAX_CORRECTION_STRENGTH_DELTA = 1.0f
+
+		// SlimeVR Mod: below this, the shin is lying down (kneeling)
+		private const val KNEELING_SHIN_UPRIGHT = 0.5f
 	}
 
 	// state variables
@@ -373,68 +376,41 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 	private fun correctClipping() {
 		// calculate how angled down the feet are as a scalar value between 0
 		// and 1 (0 = flat, 1 = max angle)
-		val leftOffset: Float = getFootOffset(leftFootRotation)
-		val rightOffset: Float = getFootOffset(rightFootRotation)
-		var avgOffset = 0f
+		// SlimeVR Mod: when kneeling or sitting on the heels the knee touches
+		// the floor and the foot lies flat behind it, so the "on tiptoes" offset
+		// would push the leg (and the knee) up for nothing
+		val leftKneeling = isKneeling(leftKneePosition, leftFootPosition)
+		val rightKneeling = isKneeling(rightKneePosition, rightFootPosition)
+		val leftOffset: Float = if (leftKneeling) 0f else getFootOffset(leftFootRotation)
+		val rightOffset: Float = if (rightKneeling) 0f else getFootOffset(rightFootRotation)
 
 		// if there is no clipping, return
-		if (!isClipped(leftOffset, rightOffset)) return
-
-		// move the feet to their new positions
-		if (leftFootPosition.y
-			< floorLevel +
-			footLength *
-			leftOffset -
-			currentDisengagementOffset
+		if (!isClipped(leftOffset, rightOffset) &&
+			!(leftKneeling && leftKneePosition.y < floorLevel - currentDisengagementOffset) &&
+			!(rightKneeling && rightKneePosition.y < floorLevel - currentDisengagementOffset)
 		) {
-			val displacement = abs(
-				(
-					floorLevel +
-						footLength *
-						leftOffset -
-						leftFootPosition.y -
-						currentDisengagementOffset
-					),
-			)
-			leftFootPosition = Vector3(
-				leftFootPosition.x,
-				leftFootPosition.y + displacement,
-				leftFootPosition.z,
-			)
-			leftKneePosition = Vector3(
-				leftKneePosition.x,
-				leftKneePosition.y + displacement,
-				leftKneePosition.z,
-			)
-			avgOffset += displacement
+			return
 		}
 
-		if (rightFootPosition.y
-			< floorLevel +
-			footLength *
-			rightOffset -
-			currentDisengagementOffset
-		) {
-			val displacement = abs(
-				(
-					floorLevel +
-						footLength *
-						rightOffset -
-						rightFootPosition.y -
-						currentDisengagementOffset
-					),
-			)
-			rightFootPosition = Vector3(
-				rightFootPosition.x,
-				rightFootPosition.y + displacement,
-				rightFootPosition.z,
-			)
-			rightKneePosition = Vector3(
-				rightKneePosition.x,
-				rightKneePosition.y + displacement,
-				rightKneePosition.z,
-			)
-			avgOffset += displacement
+		// move the feet to their new positions
+		var avgOffset = 0f
+		val leftFootUp = clipDisplacement(leftFootPosition.y, leftOffset)
+		// Standing, the knee follows the foot. Kneeling, each one only goes
+		// up to the floor, so the knee isn't lifted because of the foot.
+		val leftKneeUp = if (leftKneeling) clipDisplacement(leftKneePosition.y, 0f) else leftFootUp
+		if (leftFootUp > 0f || leftKneeUp > 0f) {
+			leftFootPosition = Vector3(leftFootPosition.x, leftFootPosition.y + leftFootUp, leftFootPosition.z)
+			leftKneePosition = Vector3(leftKneePosition.x, leftKneePosition.y + leftKneeUp, leftKneePosition.z)
+			avgOffset += max(leftFootUp, leftKneeUp)
+		}
+		val rightFootUp = clipDisplacement(rightFootPosition.y, rightOffset)
+		// Standing, the knee follows the foot. Kneeling, each one only goes
+		// up to the floor, so the knee isn't lifted because of the foot.
+		val rightKneeUp = if (rightKneeling) clipDisplacement(rightKneePosition.y, 0f) else rightFootUp
+		if (rightFootUp > 0f || rightKneeUp > 0f) {
+			rightFootPosition = Vector3(rightFootPosition.x, rightFootPosition.y + rightFootUp, rightFootPosition.z)
+			rightKneePosition = Vector3(rightKneePosition.x, rightKneePosition.y + rightKneeUp, rightKneePosition.z)
+			avgOffset += max(rightFootUp, rightKneeUp)
 		}
 
 		hipPosition = Vector3(
@@ -442,6 +418,23 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 			hipPosition.y + avgOffset / 2 * WAIST_PUSH_WEIGHT,
 			hipPosition.z,
 		)
+	}
+
+	/** SlimeVR Mod: how much a point has to go up to stay above the floor */
+	private fun clipDisplacement(height: Float, offset: Float): Float {
+		val floor = floorLevel + footLength * offset - currentDisengagementOffset
+		return if (height < floor) floor - height else 0f
+	}
+
+	/**
+	 * SlimeVR Mod: the shin is closer to flat than upright, so the player is
+	 * kneeling or sitting on their heels
+	 */
+	private fun isKneeling(kneePosition: Vector3, footPosition: Vector3): Boolean {
+		val shin = kneePosition - footPosition
+		val length = shin.len()
+		if (length < NEARLY_ZERO) return false
+		return shin.y / length < KNEELING_SHIN_UPRIGHT
 	}
 
 	// based on the data from the last frame compute a new position that reduces
