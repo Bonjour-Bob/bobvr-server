@@ -462,6 +462,6 @@ a,
 }
 
 /* Noir & blanc : images (slimes, illustrations) en niveaux de gris */
-:root[data-theme='noir-blanc'] img {
+:root[data-theme='noir-blanc'] img:not(.keep-colors) {
   filter: grayscale(1);
 }

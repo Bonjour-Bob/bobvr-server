@@ -153,7 +153,7 @@ function PoseHelp({ image, title }: { image: string; title: string }) {
       <Typography variant="section-title" textAlign="text-center">
         {title}
       </Typography>
-      <img src={image} alt={title} className="w-64 max-w-full" />
+      <img src={image} alt={title} className="keep-colors max-h-64 max-w-[18rem] w-auto" />
     </div>
   );
 }

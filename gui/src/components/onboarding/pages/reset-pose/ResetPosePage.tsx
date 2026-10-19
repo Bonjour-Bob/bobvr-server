@@ -55,13 +55,13 @@ export const RESET_POSES: Record<ResetPoseKind, PoseInfo> = {
   },
 };
 
-function PoseImage({ pose, width }: { pose: PoseInfo; width: number }) {
+function PoseImage({ pose }: { pose: PoseInfo }) {
+  // The sitting picture is tall and the lying one is wide: bound both sides
   return (
     <img
       src={pose.image}
       alt={pose.positionTitle}
-      width={width}
-      className="max-w-full object-contain"
+      className="keep-colors max-h-[440px] max-w-[460px] w-auto h-auto object-contain"
     />
   );
 }
@@ -93,7 +93,7 @@ function makePositionStep(pose: PoseInfo) {
           </div>
           {isMobile && (
             <div className="flex justify-center">
-              <PoseImage pose={pose} width={300} />
+              <PoseImage pose={pose} />
             </div>
           )}
           <div className="flex gap-3 mobile:justify-between">
@@ -110,7 +110,7 @@ function makePositionStep(pose: PoseInfo) {
         </div>
         {!isMobile && (
           <div className="flex items-center justify-center px-8">
-            <PoseImage pose={pose} width={340} />
+            <PoseImage pose={pose} />
           </div>
         )}
       </>
@@ -145,7 +145,7 @@ function makeResetStep(pose: PoseInfo) {
           </div>
           {isMobile && (
             <div className="flex justify-center">
-              <PoseImage pose={pose} width={300} />
+              <PoseImage pose={pose} />
             </div>
           )}
           <div className="flex gap-3 mobile:justify-between">
@@ -160,7 +160,7 @@ function makeResetStep(pose: PoseInfo) {
         </div>
         {!isMobile && (
           <div className="flex items-center justify-center px-8">
-            <PoseImage pose={pose} width={340} />
+            <PoseImage pose={pose} />
           </div>
         )}
       </>
