@@ -815,11 +815,7 @@ class HumanSkeleton(
 			headTrackerBone.setRotation(headRot)
 
 			// Get neck rotation
-			// SlimeVR Mod: with a chest tracker (6, 8, 10 trackers...) the neck
-			// follows the torso instead of the head, so moving the head (looking
-			// down, nodding) no longer pushes the whole body around
 			neckTracker?.let { headRot = it.getRotation() }
-				?: getFirstAvailableTracker(upperChestTracker, chestTracker)?.let { headRot = it.getRotation() }
 
 			// Set neck rotation
 			neckBone.setRotation(headRot)
