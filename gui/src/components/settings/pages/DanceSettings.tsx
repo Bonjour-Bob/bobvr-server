@@ -28,7 +28,7 @@ import {
 // Page "Danse" de SlimeVR Mod : tous les reglages utiles pour danser au meme
 // endroit, avec des explications et un profil en un clic.
 
-type DanceForm = {
+export type DanceForm = {
   filtering: { type: string; amount: number };
   toggles: {
     floorClip: boolean;
@@ -105,6 +105,133 @@ function formFromSettings(s: SettingsResponseT): DanceForm {
   };
 }
 
+// Builds the settings change for these dance values, keeping every other
+// setting as it currently is on the server
+export function buildDanceRequest(
+  values: DanceForm,
+  current: SettingsResponseT
+): ChangeSettingsRequestT {
+  const req = new ChangeSettingsRequestT();
+
+  const filtering = new FilteringSettingsT();
+  filtering.type = Number(values.filtering.type);
+  filtering.amount = values.filtering.amount;
+  req.filtering = filtering;
+
+  // The server always reads every toggle, so start from the current ones
+  const old = current.modelSettings?.toggles;
+  const toggles = new ModelTogglesT(
+    values.toggles.extendedSpine,
+    values.toggles.extendedPelvis,
+    values.toggles.extendedKnee,
+    !!old?.forceArmsFromHmd,
+    values.toggles.floorClip,
+    values.toggles.skatingCorrection,
+    values.toggles.toeSnap,
+    values.toggles.footPlant,
+    !!old?.selfLocalization,
+    old?.usePosition ?? true,
+    values.toggles.enforceConstraints,
+    old?.correctConstraints ?? true
+  );
+  const legTweaks = new LegTweaksSettingsT();
+  legTweaks.correctionStrength = values.legTweaks.correctionStrength;
+  req.modelSettings = new ModelSettingsT(toggles, null, legTweaks, null);
+
+  req.driftCompensation = new DriftCompensationSettingsT(
+    values.drift.enabled,
+    values.drift.prediction,
+    values.drift.amount,
+    values.drift.maxResets
+  );
+
+  const r = current.resetsSettings;
+  if (r) {
+    req.resetsSettings = new ResetsSettingsT(
+      r.resetMountingFeet,
+      r.armsMountingResetMode,
+      values.resets.yawResetSmoothTime,
+      r.saveMountingReset,
+      r.resetHmdPitch
+    );
+  }
+
+  return req;
+}
+
+function readBackup(): DanceForm | null {
+  try {
+    const saved = localStorage.getItem(BACKUP_KEY);
+    return saved ? (JSON.parse(saved) as DanceForm) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveBackupIfMissing(values: DanceForm) {
+  try {
+    // Never overwrite the user's own settings with the preset
+    if (!localStorage.getItem(BACKUP_KEY)) {
+      localStorage.setItem(BACKUP_KEY, JSON.stringify(values));
+    }
+  } catch {
+    // No backup possible, the preset still applies
+  }
+}
+
+function clearBackup() {
+  try {
+    localStorage.removeItem(BACKUP_KEY);
+  } catch {
+    // Nothing to clear
+  }
+}
+
+/**
+ * Dance mode: on applies the dance preset, off brings back the settings saved
+ * just before. Shared with the "Danse" settings page.
+ */
+export function useDanceMode() {
+  const { sendRPCPacket, useRPCPacket } = useWebsocketAPI();
+  const settingsRef = useRef<SettingsResponseT | null>(null);
+  const [active, setActive] = useState(() => readBackup() !== null);
+
+  useEffect(() => {
+    sendRPCPacket(RpcMessage.SettingsRequest, new SettingsRequestT());
+  }, []);
+
+  useRPCPacket(RpcMessage.SettingsResponse, (s: SettingsResponseT) => {
+    settingsRef.current = s;
+    setActive(readBackup() !== null);
+  });
+
+  const toggle = () => {
+    const current = settingsRef.current;
+    if (!current) return;
+    if (!active) {
+      saveBackupIfMissing(formFromSettings(current));
+      sendRPCPacket(
+        RpcMessage.ChangeSettingsRequest,
+        buildDanceRequest(DANCE_PRESET, current)
+      );
+      setActive(true);
+    } else {
+      const backup = readBackup();
+      if (backup) {
+        sendRPCPacket(
+          RpcMessage.ChangeSettingsRequest,
+          buildDanceRequest(backup, current)
+        );
+      }
+      clearBackup();
+      setActive(false);
+    }
+    sendRPCPacket(RpcMessage.SettingsRequest, new SettingsRequestT());
+  };
+
+  return { active, toggle };
+}
+
 function Explain({ children }: { children: ReactNode }) {
   return (
     <div className="pb-2">
@@ -139,11 +266,7 @@ export function DanceSettings() {
   const driftEnabled = watch('drift.enabled');
 
   useEffect(() => {
-    try {
-      setHasBackup(!!localStorage.getItem(BACKUP_KEY));
-    } catch {
-      setHasBackup(false);
-    }
+    setHasBackup(readBackup() !== null);
     sendRPCPacket(RpcMessage.SettingsRequest, new SettingsRequestT());
   }, []);
 
@@ -156,52 +279,10 @@ export function DanceSettings() {
   const onSubmit = (values: DanceForm) => {
     const current = settingsRef.current;
     if (!current) return;
-    const req = new ChangeSettingsRequestT();
-
-    const filtering = new FilteringSettingsT();
-    filtering.type = Number(values.filtering.type);
-    filtering.amount = values.filtering.amount;
-    req.filtering = filtering;
-
-    // The server always reads every toggle, so start from the current ones
-    const old = current.modelSettings?.toggles;
-    const toggles = new ModelTogglesT(
-      values.toggles.extendedSpine,
-      values.toggles.extendedPelvis,
-      values.toggles.extendedKnee,
-      !!old?.forceArmsFromHmd,
-      values.toggles.floorClip,
-      values.toggles.skatingCorrection,
-      values.toggles.toeSnap,
-      values.toggles.footPlant,
-      !!old?.selfLocalization,
-      old?.usePosition ?? true,
-      values.toggles.enforceConstraints,
-      old?.correctConstraints ?? true
+    sendRPCPacket(
+      RpcMessage.ChangeSettingsRequest,
+      buildDanceRequest(values, current)
     );
-    const legTweaks = new LegTweaksSettingsT();
-    legTweaks.correctionStrength = values.legTweaks.correctionStrength;
-    req.modelSettings = new ModelSettingsT(toggles, null, legTweaks, null);
-
-    req.driftCompensation = new DriftCompensationSettingsT(
-      values.drift.enabled,
-      values.drift.prediction,
-      values.drift.amount,
-      values.drift.maxResets
-    );
-
-    const r = current.resetsSettings;
-    if (r) {
-      req.resetsSettings = new ResetsSettingsT(
-        r.resetMountingFeet,
-        r.armsMountingResetMode,
-        values.resets.yawResetSmoothTime,
-        r.saveMountingReset,
-        r.resetHmdPitch
-      );
-    }
-
-    sendRPCPacket(RpcMessage.ChangeSettingsRequest, req);
   };
 
   useEffect(() => {
@@ -218,27 +299,22 @@ export function DanceSettings() {
   };
 
   const applyDancePreset = () => {
-    try {
-      localStorage.setItem(BACKUP_KEY, JSON.stringify(getValues()));
-      setHasBackup(true);
-    } catch {
-      // No backup possible, the preset still applies
-    }
+    saveBackupIfMissing(getValues());
+    setHasBackup(readBackup() !== null);
     applyValues(DANCE_PRESET);
     setMessage('Profil danse appliqué.');
   };
 
   const restoreBackup = () => {
-    try {
-      const saved = localStorage.getItem(BACKUP_KEY);
-      if (!saved) return;
-      applyValues(JSON.parse(saved) as DanceForm);
-      localStorage.removeItem(BACKUP_KEY);
-      setHasBackup(false);
-      setMessage('Tes réglages d’avant sont revenus.');
-    } catch {
+    const backup = readBackup();
+    if (!backup) {
       setMessage('Impossible de retrouver tes réglages d’avant.');
+      return;
     }
+    applyValues(backup);
+    clearBackup();
+    setHasBackup(false);
+    setMessage('Tes réglages d’avant sont revenus.');
   };
 
   return (

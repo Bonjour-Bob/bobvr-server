@@ -15,12 +15,21 @@ import { Tooltip } from './commons/Tooltip';
 import { Vector3 } from 'three';
 import { RecordIcon } from './commons/icon/RecordIcon';
 import { PauseIcon } from './commons/icon/PauseIcon';
-import { HumanIcon } from './commons/icon/HumanIcon';
 import { EyeIcon } from './commons/icon/EyeIcon';
 import { useConfig } from '@/hooks/config';
 import { useBHV } from '@/hooks/bvh';
 import { usePauseTracking } from '@/hooks/pause-tracking';
 import { PlayIcon } from './commons/icon/PlayIcon';
+import { useDanceMode } from './settings/pages/DanceSettings';
+
+// SlimeVR Mod : icone du mode danse (une note de musique)
+function DanceIcon({ width = 20 }: { width?: number }) {
+  return (
+    <svg width={width} height={width} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M9 18.5a3 3 0 1 1-2-2.83V5.5l12-2.5v12a3 3 0 1 1-2-2.83V7.4l-8 1.67v9.43Z" />
+    </svg>
+  );
+}
 
 export function PreviewControls({ open }: { open: boolean }) {
   const [userHeight, setUserHeight] = useState('');
@@ -33,6 +42,7 @@ export function PreviewControls({ open }: { open: boolean }) {
     available: bvhAvailable,
   } = useBHV();
   const { paused, toggle: toggleTracking } = usePauseTracking();
+  const { active: danceMode, toggle: toggleDanceMode } = useDanceMode();
 
   const { cmFormat } = useMemo(() => {
     const cmFormat = Intl.NumberFormat(currentLocales, {
@@ -126,15 +136,23 @@ export function PreviewControls({ open }: { open: boolean }) {
           </Tooltip>
           <Tooltip
             content={
-              <Typography
-                variant="section-title"
-                id="preview-mocap_mode_soon"
-              />
+              <Typography variant="section-title">
+                {danceMode
+                  ? 'Mode danse activé (clique pour revenir à tes réglages)'
+                  : 'Activer le mode danse'}
+              </Typography>
             }
             preferedDirection="top"
           >
-            <div className="flex justify-center items-center w-10 h-10 rounded-full cursor-not-allowed">
-              <HumanIcon width={20} />
+            <div
+              className={classNames(
+                'flex justify-center items-center w-10 h-10 rounded-full hover:bg-background-60 cursor-pointer',
+                { 'bg-background-60 text-background-10': danceMode },
+                { 'text-background-30': !danceMode }
+              )}
+              onClick={() => toggleDanceMode()}
+            >
+              <DanceIcon width={20} />
             </div>
           </Tooltip>
         </div>
