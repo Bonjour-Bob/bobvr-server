@@ -273,6 +273,8 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       devTools: true,
+      // SlimeVR Mod : la musique de demarrage joue sans clic
+      autoplayPolicy: 'no-user-gesture-required',
     },
   });
 

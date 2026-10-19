@@ -211,6 +211,15 @@ export default function App() {
   const [updateFound, setUpdateFound] = useState('');
   // SlimeVR Mod : l'animation de demarrage reste affichee 2 secondes
   const [splashDone, setSplashDone] = useState(false);
+  // SlimeVR Mod : 3 secondes de musique de Bob au demarrage
+  useEffect(() => {
+    const music = new Audio('/sounds/bob-demarrage.mp3');
+    music.volume = 0.6;
+    music.play().catch(() => {
+      // lecture bloquee (pas de son disponible) : on ignore
+    });
+    return () => music.pause();
+  }, []);
   useEffect(() => {
     const timer = setTimeout(() => setSplashDone(true), 2000);
     return () => clearTimeout(timer);
