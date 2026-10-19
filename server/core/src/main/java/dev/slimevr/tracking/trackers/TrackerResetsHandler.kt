@@ -256,8 +256,12 @@ class TrackerResetsHandler(val tracker: Tracker) {
 	/**
 	 * Reset the tracker so that its current rotation is counted as (0, HMD Yaw,
 	 * 0). This allows the tracker to be strapped to body at any pitch and roll.
+	 *
+	 * [pose] is the body pose the player is in during the reset (SlimeVR Mod):
+	 * standing by default, or sitting / lying, in which case the bone's real
+	 * orientation in that pose is used instead of standing straight.
 	 */
-	fun resetFull(reference: Quaternion) {
+	fun resetFull(reference: Quaternion, pose: ResetPose = ResetPose.STANDING) {
 		constraintFix = Quaternion.IDENTITY
 
 		if (tracker.trackerDataType == TrackerDataType.FLEX_RESISTANCE) {
@@ -328,6 +332,14 @@ class TrackerResetsHandler(val tracker: Tracker) {
 		if (tracker.trackerPosition != TrackerPosition.HEAD || !tracker.isComputed) {
 			yawFix = fixYaw(mountingAdjustedRotation, reference)
 			tracker.yawResetSmoothing.reset()
+		}
+
+		// SlimeVR Mod: when not standing, the bone isn't straight at reset time.
+		// Applied after yawFix so the yaw still follows the HMD, and around the
+		// mounting so the pose is expressed in the bone's frame.
+		val poseRotation = pose.rotationFor(tracker.trackerPosition)
+		if (poseRotation != Quaternion.IDENTITY && !tracker.isComputed && !tracker.isHmd) {
+			attachmentFix *= mountRotFix * poseRotation * mountRotFix.inv()
 		}
 
 		calculateDrift(oldRot)

@@ -7,6 +7,7 @@ import dev.slimevr.protocol.ProtocolAPIServer
 import dev.slimevr.protocol.rpc.RPCHandler
 import dev.slimevr.protocol.rpc.TransactionInfo
 import dev.slimevr.reset.ResetListener
+import dev.slimevr.tracking.trackers.ResetPose
 import solarxr_protocol.rpc.ClearMountingResetRequest
 import solarxr_protocol.rpc.ResetRequest
 import solarxr_protocol.rpc.ResetResponse
@@ -67,6 +68,20 @@ class RPCResetHandler(var rpcHandler: RPCHandler, var api: ProtocolAPI) : ResetL
 			} else {
 				api.server.scheduleResetTrackersFull(RESET_SOURCE_NAME, (delay * 1000).toLong(), bodyParts.toList(), tx = tx)
 			}
+		}
+		// SlimeVR Mod: full reset while sitting or lying
+		val pose = when (req.resetType()) {
+			ResetType.FullSitting -> ResetPose.SITTING
+			ResetType.FullLying -> ResetPose.LYING
+			else -> null
+		}
+		if (pose != null) {
+			val delay = if (req.hasDelay()) {
+				req.delay()
+			} else {
+				resetsConfig.fullResetDelay
+			}
+			api.server.scheduleResetTrackersFull(RESET_SOURCE_NAME, (delay * 1000).toLong(), bodyParts.toList(), tx = tx, pose = pose)
 		}
 		if (req.resetType() == ResetType.Mounting) {
 			val delay = if (req.hasDelay()) {

@@ -12,6 +12,7 @@ import dev.slimevr.tracking.processor.config.SkeletonConfigToggles
 import dev.slimevr.tracking.processor.config.SkeletonConfigValues
 import dev.slimevr.tracking.processor.stayaligned.StayAligned
 import dev.slimevr.tracking.processor.stayaligned.trackers.TrackerSkeleton
+import dev.slimevr.tracking.trackers.ResetPose
 import dev.slimevr.tracking.trackers.Tracker
 import dev.slimevr.tracking.trackers.TrackerPosition
 import dev.slimevr.tracking.trackers.TrackerRole
@@ -1548,14 +1549,18 @@ class HumanSkeleton(
 		)
 
 	@JvmOverloads
-	fun resetTrackersFull(resetSourceName: String?, bodyParts: List<Int> = ArrayList()) {
+	fun resetTrackersFull(
+		resetSourceName: String?,
+		bodyParts: List<Int> = ArrayList(),
+		pose: ResetPose = ResetPose.STANDING,
+	) {
 		humanPoseManager.server?.serverGuards?.onFullReset()
 
 		var referenceRotation = IDENTITY
 		headTracker?.let {
 			if (bodyParts.isEmpty() || bodyParts.contains(BodyPart.HEAD)) {
 				// Always reset the head (ifs in resetsHandler)
-				it.resetsHandler.resetFull(referenceRotation)
+				it.resetsHandler.resetFull(referenceRotation, pose)
 			}
 			referenceRotation = it.getRotation()
 		}
@@ -1564,7 +1569,7 @@ class HumanSkeleton(
 		for (tracker in trackersToReset) {
 			// Only reset if tracker needsReset
 			if (tracker != null && (tracker.allowReset || tracker.isHmd) && (bodyParts.isEmpty() || bodyParts.contains(tracker.trackerPosition?.bodyPart))) {
-				tracker.resetsHandler.resetFull(referenceRotation)
+				tracker.resetsHandler.resetFull(referenceRotation, pose)
 			}
 		}
 
@@ -1576,7 +1581,7 @@ class HumanSkeleton(
 		legTweaks.resetBuffer()
 		localizer.reset()
 		ikSolver.resetOffsets()
-		LogManager.info("[HumanSkeleton] Reset: full ($resetSourceName)")
+		LogManager.info("[HumanSkeleton] Reset: full, ${pose.name.lowercase()} ($resetSourceName)")
 	}
 
 	@VRServerThread

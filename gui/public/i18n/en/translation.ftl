@@ -250,6 +250,8 @@ reset-reset_all_warning_default-v2 =
     Are you sure you want to do this?
 
 reset-full = Full Reset
+reset-full-sitting = Full reset (sitting)
+reset-full-lying = Full reset (lying)
 reset-mounting = Mounting Calibration
 reset-mounting-feet = Feet Calibration
 reset-mounting-fingers = Fingers Calibration
@@ -1711,5 +1713,7 @@ toolbar-mounting_calibration-default = Body
 toolbar-mounting_calibration-feet = Feet
 toolbar-mounting_calibration-fingers = Fingers
 toolbar-drift_reset = Drift Reset
+toolbar-drift_reset-sitting = Sitting
+toolbar-drift_reset-lying = Lying
 toolbar-assigned_trackers = {$count} trackers assigned
 toolbar-unassigned_trackers = {$count} trackers unassigned

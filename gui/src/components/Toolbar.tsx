@@ -174,8 +174,17 @@ export function Toolbar() {
         <div className="px-3 py-3 w-full flex gap-4 justify-center md:justify-start">
           <div className="flex-col flex gap-1 md:w-[60%]">
             <Typography variant="section-title" id="toolbar-drift_reset" />
-            <div className="gap-2 md:h-[72px] h-[62px] w-full grid-cols-2 grid">
+            <div className="gap-2 md:h-[72px] h-[62px] w-full grid-cols-4 grid">
               <BasicResetButton type={ResetType.Full} />
+              {/* SlimeVR Mod : reset complet assis ou allonge */}
+              <BasicResetButton
+                type={ResetType.FullSitting}
+                customName="toolbar-drift_reset-sitting"
+              />
+              <BasicResetButton
+                type={ResetType.FullLying}
+                customName="toolbar-drift_reset-lying"
+              />
               <BasicResetButton type={ResetType.Yaw} />
             </div>
           </div>
