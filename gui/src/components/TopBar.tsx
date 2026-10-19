@@ -33,14 +33,14 @@ export function VersionTag() {
       className={classNames(
         'flex justify-around flex-col text-standard-bold',
         'text-status-success bg-status-success bg-opacity-20 rounded-lg',
-        'px-3 select-text cursor-pointer'
+        'px-3 select-text'
       )}
-      onClick={() => {
-        const url = `https://github.com/${GH_REPO}/releases`;
-        openUrl(url);
-      }}
+      title={
+        (__VERSION_TAG__ || __COMMIT_HASH__) + (__GIT_CLEAN__ ? '' : '-dirty')
+      }
     >
-      {(__VERSION_TAG__ || __COMMIT_HASH__) + (__GIT_CLEAN__ ? '' : '-dirty')}
+      {/* SlimeVR Mod : nom du mod a la place du numero de version */}
+      BOBvr-Beta by Bonjour-
     </div>
   );
 }
