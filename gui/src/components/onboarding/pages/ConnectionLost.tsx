@@ -52,6 +52,27 @@ function Error({ title, desc }: { title: string; desc: string }) {
   );
 }
 
+const STARTUP_VIDEO = '/videos/bob-danse.webm';
+
+function StartupVideo() {
+  return (
+    <video src={STARTUP_VIDEO} width={300} autoPlay loop muted playsInline />
+  );
+}
+
+// SlimeVR Mod : ecran de demarrage, fond noir et animation
+export function StartupSplash() {
+  return (
+    <div className="h-full bg-black">
+      <EmptyLayout>
+        <div className="flex w-full h-full justify-center items-center">
+          <StartupVideo />
+        </div>
+      </EmptyLayout>
+    </div>
+  );
+}
+
 export function ConnectionLost() {
   const { isFirstConnection, timedOut } = useWebsocketAPI();
 
@@ -59,38 +80,35 @@ export function ConnectionLost() {
   const isCrashed = !isFirstConnection && !timedOut;
   const isTimedOut = isFirstConnection && timedOut;
   return (
-    <EmptyLayout>
-      <div className="flex w-full h-full justify-center items-center p-4">
-        <div className="flex flex-col items-center gap-4 -mt-12">
-          {isLoading && (
-            <>
-              {/* SlimeVR Mod : animation de demarrage */}
-              <video
-                src="/videos/bob-danse.webm"
-                width={260}
-                autoPlay
-                loop
-                muted
-                playsInline
+    <div className="h-full bg-black">
+      <EmptyLayout>
+        <div className="flex w-full h-full justify-center items-center p-4">
+          <div className="flex flex-col items-center gap-4 -mt-12">
+            {isLoading && (
+              <>
+                <StartupVideo />
+                <div>
+                  <Localized id="websocket-connecting">
+                    <Typography variant="main-title" />
+                  </Localized>
+                </div>
+              </>
+            )}
+            {isCrashed && (
+              <Error
+                title="websocket-connection_lost"
+                desc="websocket-connection_lost-desc"
               />
-              <div>
-                <Localized id="websocket-connecting">
-                  <Typography variant="main-title" />
-                </Localized>
-              </div>
-            </>
-          )}
-          {isCrashed && (
-            <Error
-              title="websocket-connection_lost"
-              desc="websocket-connection_lost-desc"
-            />
-          )}
-          {isTimedOut && (
-            <Error title="websocket-timedout" desc="websocket-timedout-desc" />
-          )}
+            )}
+            {isTimedOut && (
+              <Error
+                title="websocket-timedout"
+                desc="websocket-timedout-desc"
+              />
+            )}
+          </div>
         </div>
-      </div>
-    </EmptyLayout>
+      </EmptyLayout>
+    </div>
   );
 }

@@ -47,7 +47,10 @@ import { withSentryReactRouterV6Routing } from '@sentry/react';
 import { ScaledProportionsPage } from './components/onboarding/pages/body-proportions/ScaledProportions';
 import { AdvancedSettings } from './components/settings/pages/AdvancedSettings';
 import { FirmwareUpdate } from './components/firmware-update/FirmwareUpdate';
-import { ConnectionLost } from './components/onboarding/pages/ConnectionLost';
+import {
+  ConnectionLost,
+  StartupSplash,
+} from './components/onboarding/pages/ConnectionLost';
 import { VRCWarningsPage } from './components/vrc/VRCWarningsPage';
 import { StayAlignedSetup } from './components/onboarding/pages/stay-aligned/StayAlignedSetup';
 import { TrackingChecklistProvider } from './components/tracking-checklist/TrackingChecklistProvider';
@@ -197,6 +200,12 @@ function Layout() {
 export default function App() {
   const websocketAPI = useProvideWebsocketApi();
   const [updateFound, setUpdateFound] = useState('');
+  // SlimeVR Mod : l'animation de demarrage reste affichee 3 secondes
+  const [splashDone, setSplashDone] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSplashDone(true), 3000);
+    return () => clearTimeout(timer);
+  }, []);
   const electron = provideElectron();
 
   useEffect(() => {
@@ -310,8 +319,11 @@ export default function App() {
                     <VersionContext.Provider value={updateFound}>
                       <div className="h-full w-full text-standard bg-background-80 text-background-10">
                         <Preload />
-                        {!websocketAPI.isConnected && <ConnectionLost />}
-                        {websocketAPI.isConnected && <Layout />}
+                        {!splashDone && <StartupSplash />}
+                        {splashDone && !websocketAPI.isConnected && (
+                          <ConnectionLost />
+                        )}
+                        {splashDone && websocketAPI.isConnected && <Layout />}
                       </div>
                     </VersionContext.Provider>
                   </TrackingChecklistProvider>
