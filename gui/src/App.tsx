@@ -200,10 +200,10 @@ function Layout() {
 export default function App() {
   const websocketAPI = useProvideWebsocketApi();
   const [updateFound, setUpdateFound] = useState('');
-  // SlimeVR Mod : l'animation de demarrage reste affichee 3 secondes
+  // SlimeVR Mod : l'animation de demarrage reste affichee 2 secondes
   const [splashDone, setSplashDone] = useState(false);
   useEffect(() => {
-    const timer = setTimeout(() => setSplashDone(true), 3000);
+    const timer = setTimeout(() => setSplashDone(true), 2000);
     return () => clearTimeout(timer);
   }, []);
   const electron = provideElectron();
