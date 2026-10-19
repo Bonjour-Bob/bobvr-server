@@ -19,7 +19,8 @@ import { ResetButtonIcon } from './home/ResetButton';
 const MAINBUTTON_CLASSES = ({ disabled }: { disabled: boolean }) =>
   classNames(
     'relative overflow-clip',
-    'flex h-full items-center justify-center gap-2 px-4 bg-background-60 rounded-lg fill-background-10 aspect-square md:aspect-auto',
+    // SlimeVR Mod : icone au-dessus du texte tant que la fenetre est etroite
+    'flex h-full w-full items-center justify-center gap-1 xl:gap-2 px-1 xl:px-4 flex-col xl:flex-row bg-background-60 rounded-lg fill-background-10 aspect-square md:aspect-auto',
     {
       'cursor-pointer hover:bg-background-50 bg-background-60': !disabled,
       'cursor-not-allowed bg-background-70 brightness-75': disabled,
@@ -74,7 +75,7 @@ function BasicResetButton({
 
   return (
     <Tooltip
-      disabled={!error && isMd && !help}
+      disabled={!error && isMd && !help && !options.customName}
       content={
         error ? (
           <Typography
@@ -83,7 +84,7 @@ function BasicResetButton({
             color="text-status-critical"
           />
         ) : (
-          help || <Typography textAlign="text-center" id={name} />
+          help || <Typography textAlign="text-center" id={resetName} />
         )
       }
       spacing={5}
@@ -116,7 +117,7 @@ function BasicResetButton({
         </div>
 
         <div
-          className={classNames('hidden md:block relative', {
+          className={classNames('hidden md:block relative leading-tight', {
             'opacity-0': status === 'counting',
           })}
         >
@@ -124,6 +125,7 @@ function BasicResetButton({
             variant="section-title"
             textAlign="text-center"
             id={name}
+            whitespace="whitespace-normal"
           />
         </div>
 
@@ -189,11 +191,12 @@ function PoseResetLink({
         }
       >
         <ResetButtonIcon type={ResetType.Full} />
-        <div className="hidden md:block relative">
+        <div className="hidden md:block relative leading-tight">
           <Typography
             variant="section-title"
             textAlign="text-center"
             id={label}
+            whitespace="whitespace-normal"
           />
         </div>
       </button>
@@ -230,11 +233,23 @@ export function Toolbar() {
   return (
     <>
       <div className="flex mobile:py-2 flex-col items-center bg-background-70 rounded-t-lg h-[var(--toolbar-h)] mr-2 xs:mt-2 mobile:mr-0">
-        <div className="px-3 py-3 w-full flex gap-4 justify-center md:justify-start">
-          <div className="flex-col flex gap-1 md:w-[60%]">
-            <Typography variant="section-title" id="toolbar-drift_reset" />
+        <div className="px-3 py-3 w-full flex gap-3 xl:gap-4 justify-center md:justify-start">
+          {/* SlimeVR Mod : les deux groupes se partagent la largeur selon leur
+              nombre de boutons, pour que tout tienne en mode fenetre */}
+          <div
+            className="flex-col flex gap-1 min-w-0"
+            style={{ flex: '4 1 0' }}
+          >
+            <Typography
+              variant="section-title"
+              id="toolbar-drift_reset"
+              truncate
+            />
             <div className="gap-2 md:h-[72px] h-[62px] w-full grid-cols-4 grid">
-              <BasicResetButton type={ResetType.Full} />
+              <BasicResetButton
+                type={ResetType.Full}
+                customName="toolbar-drift_reset-full"
+              />
               {/* SlimeVR Mod : reset complet assis ou allonge */}
               <PoseResetLink
                 kind="sitting"
@@ -256,13 +271,20 @@ export function Toolbar() {
                   />
                 }
               />
-              <BasicResetButton type={ResetType.Yaw} />
+              <BasicResetButton
+                type={ResetType.Yaw}
+                customName="toolbar-drift_reset-yaw"
+              />
             </div>
           </div>
-          <div className="flex-col flex gap-1 md:flex-grow">
+          <div
+            className="flex-col flex gap-1 min-w-0"
+            style={{ flex: `${2 + visibleGroups} 1 0` }}
+          >
             <Typography
               variant="section-title"
               id="toolbar-mounting_calibration"
+              truncate
             />
             <div
               className="gap-2 md:h-[72px] h-[62px] w-full md:grid flex"
