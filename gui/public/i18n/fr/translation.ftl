@@ -1134,7 +1134,7 @@ onboarding-assign_trackers-option-label =
     }
 onboarding-assign_trackers-option-description =
     { $mode ->
-        [lower-body] Minimum pour le suivi du corps en réalité virtuelle
+        [lower-body] Hanche + jambes, comme un Vive (sans capteur au torse)
         [core] + Suivi amélioré de la colonne vertébrale
         [enhanced-core] + Rotation des pieds
         [full-body] + Suivi des coudes

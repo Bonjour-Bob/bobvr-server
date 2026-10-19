@@ -49,7 +49,7 @@ export const ASSIGNMENT_RULES: Partial<
   [BodyPart.RIGHT_LOWER_LEG]: [BodyPart.RIGHT_UPPER_LEG, SPINE_PARTS],
   [BodyPart.LEFT_UPPER_LEG]: [SPINE_PARTS],
   [BodyPart.RIGHT_UPPER_LEG]: [SPINE_PARTS],
-  [BodyPart.HIP]: [BodyPart.CHEST],
+  // SlimeVR Mod: a hip tracker works alone (no chest needed), like a Vive
   [BodyPart.WAIST]: [BodyPart.CHEST],
   // TODO chest OR upperChest.
   //  Also don't warn if no legs.
@@ -58,8 +58,8 @@ export const ASSIGNMENT_RULES: Partial<
 const COMMONS = [BodyPart.HEAD, ...HANDS_PARTS];
 
 export const ASSIGNMENT_MODES: Record<AssignMode, BodyPart[]> = {
-  //  x5
-  [AssignMode.LowerBody]: [BodyPart.CHEST, ...LEGS_PARTS],
+  //  x5 (SlimeVR Mod: hip instead of chest, like a Vive waist tracker)
+  [AssignMode.LowerBody]: [BodyPart.HIP, ...LEGS_PARTS],
   //  x6 (5 + 1)
   [AssignMode.Core]: [BodyPart.CHEST, BodyPart.HIP, ...LEGS_PARTS],
   //  x8 (5 + 3)

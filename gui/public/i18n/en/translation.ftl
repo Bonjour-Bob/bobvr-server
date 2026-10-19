@@ -1140,7 +1140,7 @@ onboarding-assign_trackers-option-label = { $mode ->
     *[all] All Trackers
 }
 onboarding-assign_trackers-option-description = { $mode ->
-    [lower-body] Minimum for VR full-body tracking
+    [lower-body] Hip + legs, like a Vive (no chest tracker)
     [core] + Enhanced spine tracking
     [enhanced-core] + Foot rotation
     [full-body] + Elbow tracking
