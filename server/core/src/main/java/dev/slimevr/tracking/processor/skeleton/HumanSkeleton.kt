@@ -1575,7 +1575,9 @@ class HumanSkeleton(
 
 		// Tell floorclip to reset its floor level on the next update
 		// of the computed trackers
-		if (!localizer.getEnabled()) {
+		// SlimeVR Mod: lying in bed, the feet aren't on the floor, so keep the
+		// floor from the last standing / sitting reset
+		if (!localizer.getEnabled() && pose != ResetPose.LYING) {
 			legTweaks.resetFloorLevel()
 		}
 		legTweaks.resetBuffer()

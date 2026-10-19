@@ -42,12 +42,26 @@ class TrackerResetsHandler(val tracker: Tracker) {
 	var allowDriftCompensation = false
 	var lastResetQuaternion: Quaternion? = null
 
+	/**
+	 * SlimeVR Mod: true once the tracker had a standing full reset, so how it
+	 * sits on the body (attachment and mounting) is known. A sitting or lying
+	 * reset then only has to correct the heading.
+	 */
+	private var hasStandingReset = false
+
+	/**
+	 * SlimeVR Mod: the next drift measurement would compare against a sitting
+	 * or lying reset, which isn't drift, so it's skipped.
+	 */
+	private var skipNextDriftSample = false
+
 	// Manual mounting orientation
 	var mountingOrientation = HalfHorizontal
 		set(value) {
 			field = value
 			// Clear the mounting reset now that it's been set manually
 			clearMounting()
+			hasStandingReset = false
 		}
 
 	// Reference adjustment quats
@@ -273,6 +287,19 @@ class TrackerResetsHandler(val tracker: Tracker) {
 			return
 		}
 
+		// SlimeVR Mod: sitting or lying with a known attachment, only fix the
+		// heading so the real tilt of each bone (leaning back, raised knee...)
+		// is kept instead of being forced to the theoretical pose.
+		if (pose != ResetPose.STANDING &&
+			hasStandingReset &&
+			!tracker.needReset &&
+			!tracker.isComputed &&
+			!tracker.isHmd
+		) {
+			resetHeadingInPose(reference, pose)
+			return
+		}
+
 		// Adjust for T-Pose (down)
 		tposeDownFix = if (((tracker.trackerPosition.isLeftArm() || tracker.trackerPosition.isLeftFinger()) && armsResetMode == ArmsResetModes.TPOSE_DOWN)) {
 			EulerAngles(EulerOrder.YZX, 0f, 0f, -FastMath.HALF_PI).toQuaternion()
@@ -294,7 +321,17 @@ class TrackerResetsHandler(val tracker: Tracker) {
 			gyroFix = if (tracker.isComputed) {
 				fixGyroscope(tracker.getRawRotation())
 			} else {
-				fixGyroscope(mountingAdjustedRotation * tposeDownFix)
+				// SlimeVR Mod: when the bone isn't straight, take the heading of
+				// the tracker as if the player was standing (undo the pose around
+				// the mounting), otherwise a tracker worn on the side of the leg
+				// gets a heading that has nothing to do with the body's.
+				val poseRotation = pose.rotationFor(tracker.trackerPosition)
+				val unposed = if (poseRotation != Quaternion.IDENTITY && !tracker.isHmd) {
+					mountingAdjustedRotation * (mountRotFix * poseRotation.inv() * mountRotFix.inv())
+				} else {
+					mountingAdjustedRotation
+				}
+				fixGyroscope(unposed * tposeDownFix)
 			}
 		}
 
@@ -307,7 +344,7 @@ class TrackerResetsHandler(val tracker: Tracker) {
 
 		// Attachment fix
 		attachmentFix = if (tracker.trackerPosition == TrackerPosition.HEAD && tracker.isHmd) {
-			if (resetHmdPitch) {
+			if (resetHmdPitch && pose == ResetPose.STANDING) {
 				// Reset the HMD's pitch if it's assigned to head and resetHmdPitch is true
 				// Get rotation without yaw (make sure to use the raw rotation directly!)
 				val rotBuf = getYawQuaternion(tracker.getRawRotation()).inv() * tracker.getRawRotation()
@@ -342,13 +379,58 @@ class TrackerResetsHandler(val tracker: Tracker) {
 			attachmentFix *= mountRotFix * poseRotation * mountRotFix.inv()
 		}
 
-		calculateDrift(oldRot)
+		if (pose == ResetPose.STANDING) {
+			calculateDrift(oldRot)
+			if (!tracker.isComputed && !tracker.isHmd) hasStandingReset = true
+		} else {
+			skipDriftSample()
+		}
 
 		// Reset Stay Aligned (before resetting filtering, which depends on the
 		// tracker's rotation)
 		tracker.stayAligned.reset()
 
 		postProcessResetFull(reference)
+	}
+
+	/**
+	 * SlimeVR Mod: sitting / lying reset for a tracker whose attachment is
+	 * already known from a standing reset. Only the heading drifts on an IMU,
+	 * so only the heading is corrected: the bone is turned around the vertical
+	 * axis so it faces where it should in [pose], relative to the HMD.
+	 */
+	private fun resetHeadingInPose(reference: Quaternion, pose: ResetPose) {
+		constraintFix = Quaternion.IDENTITY
+
+		val oldRot = adjustToReference(tracker.getRawRotation())
+		lastResetQuaternion = oldRot
+
+		// Current rotation of the bone without any heading correction
+		val withoutYawFix = yawFix.inv() * oldRot
+		// Where the bone should be: the pose, facing the HMD's heading
+		val target = reference.project(Vector3.POS_Y).unit() * pose.rotationFor(tracker.trackerPosition)
+		// Keep only the turn around the vertical axis
+		val headingFix = (target * withoutYawFix.inv()).project(Vector3.POS_Y)
+		if (headingFix.lenSq() > 1e-6f) {
+			yawFix = headingFix.unit()
+		}
+		tracker.yawResetSmoothing.reset()
+
+		makeIdentityAdjustmentQuatsYaw()
+		skipDriftSample()
+
+		tracker.stayAligned.reset()
+
+		postProcessResetFull(reference)
+	}
+
+	/** SlimeVR Mod: don't count this reset, nor the next one, as drift */
+	private fun skipDriftSample() {
+		if (driftCompensationEnabled) {
+			skipNextDriftSample = true
+			timeAtLastReset = System.currentTimeMillis()
+			driftSince = System.currentTimeMillis()
+		}
 	}
 
 	private fun postProcessResetFull(reference: Quaternion) {
@@ -518,6 +600,13 @@ class TrackerResetsHandler(val tracker: Tracker) {
 	 * driftQuat and timeAtLastReset
 	 */
 	private fun calculateDrift(beforeQuat: Quaternion) {
+		if (driftCompensationEnabled && skipNextDriftSample) {
+			// SlimeVR Mod: the last reset was sitting or lying
+			skipNextDriftSample = false
+			timeAtLastReset = System.currentTimeMillis()
+			driftSince = System.currentTimeMillis()
+			return
+		}
 		if (driftCompensationEnabled) {
 			val rotQuat = adjustToReference(tracker.getRawRotation())
 

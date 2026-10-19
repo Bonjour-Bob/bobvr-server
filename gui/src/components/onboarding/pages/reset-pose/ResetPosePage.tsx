@@ -29,11 +29,12 @@ export const RESET_POSES: Record<ResetPoseKind, PoseInfo> = {
     image: '/images/reset/SittingResetPose.png',
     title: 'Calibration assise',
     description:
-      'Calibre tes capteurs sans te lever, assis sur une chaise. La calibration debout reste disponible comme avant.',
+      'Recale tes capteurs sans te lever, assis sur une chaise. Pour un résultat précis, fais une fois la calibration debout après avoir mis tes capteurs : ensuite celle-ci ne corrige que l’orientation, en gardant ta vraie posture.',
     positionTitle: 'Assieds-toi sur une chaise',
     instructions: [
       'Le dos droit, contre le dossier.',
       'Les cuisses à l’horizontale, les tibias à la verticale.',
+      'Les genoux pointés droit devant, pas écartés.',
       'Les pieds à plat au sol, les mains posées sur les cuisses.',
       'Regarde droit devant toi.',
     ],
@@ -44,10 +45,11 @@ export const RESET_POSES: Record<ResetPoseKind, PoseInfo> = {
     image: '/images/reset/LyingResetPose.png',
     title: 'Calibration allongée',
     description:
-      'Calibre tes capteurs allongé dans ton lit, sur le dos. La calibration debout reste disponible comme avant.',
+      'Recale tes capteurs allongé dans ton lit, sur le dos. Pour un résultat précis, fais une fois la calibration debout après avoir mis tes capteurs : ensuite celle-ci ne corrige que l’orientation, en gardant ta vraie posture.',
     positionTitle: 'Allonge-toi sur le dos',
     instructions: [
-      'Les jambes tendues, les orteils vers le haut.',
+      'Les jambes tendues et serrées, pas écartées.',
+      'Les orteils vers le haut.',
       'Les bras le long du corps.',
       'Regarde le plafond, la tête dans l’axe du corps.',
     ],
@@ -175,6 +177,9 @@ function DoneStep({ resetSteps }: { resetSteps: () => void }) {
         <Typography variant="section-title">Calibration terminée !</Typography>
         <Typography>
           Vérifie que le squelette ci-dessous suit bien ta position.
+        </Typography>
+        <Typography color="secondary">
+          Quand tu te relèves, refais une calibration debout.
         </Typography>
       </div>
       <div className="flex gap-3">

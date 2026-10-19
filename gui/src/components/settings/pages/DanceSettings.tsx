@@ -50,25 +50,45 @@ export type DanceForm = {
   resets: { yawResetSmoothTime: number };
 };
 
-// Point de depart conseille pour la danse (a ajuster selon ton style)
+// Point de depart conseille pour la danse (a ajuster selon ton style).
+// v2 : pieds colles au sol (glissade + pied a plat), prediction plus douce et
+// compensation de derive coupee (Garder Aligne s'en charge, les deux se genent).
+const DANCE_PRESET_VERSION = '2';
 const DANCE_PRESET: DanceForm = {
-  filtering: { type: FilteringType.PREDICTION.toString(), amount: 0.3 },
+  filtering: { type: FilteringType.PREDICTION.toString(), amount: 0.2 },
   toggles: {
     floorClip: true,
-    skatingCorrection: false,
-    footPlant: false,
+    skatingCorrection: true,
+    footPlant: true,
     toeSnap: false,
     extendedSpine: true,
     extendedPelvis: true,
     extendedKnee: true,
     enforceConstraints: true,
   },
-  legTweaks: { correctionStrength: 0.3 },
-  drift: { enabled: true, prediction: false, amount: 0.8, maxResets: 6 },
+  legTweaks: { correctionStrength: 0.5 },
+  drift: { enabled: false, prediction: false, amount: 0.8, maxResets: 6 },
   resets: { yawResetSmoothTime: 0.2 },
 };
 
 const BACKUP_KEY = 'slimevr-mod-dance-backup';
+const PRESET_VERSION_KEY = 'slimevr-mod-dance-preset-version';
+
+function readPresetVersion(): string | null {
+  try {
+    return localStorage.getItem(PRESET_VERSION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function savePresetVersion() {
+  try {
+    localStorage.setItem(PRESET_VERSION_KEY, DANCE_PRESET_VERSION);
+  } catch {
+    // ignore
+  }
+}
 
 const percent = (value: number) => `${Math.round(value * 100)} %`;
 const seconds = (value: number) => `${value.toFixed(2)} s`;
@@ -202,7 +222,17 @@ export function useDanceMode() {
 
   useRPCPacket(RpcMessage.SettingsResponse, (s: SettingsResponseT) => {
     settingsRef.current = s;
-    setActive(readBackup() !== null);
+    const isActive = readBackup() !== null;
+    setActive(isActive);
+    // Dance mode turned on with an older preset: switch to the new one
+    if (isActive && readPresetVersion() !== DANCE_PRESET_VERSION) {
+      savePresetVersion();
+      sendRPCPacket(
+        RpcMessage.ChangeSettingsRequest,
+        buildDanceRequest(DANCE_PRESET, s)
+      );
+      sendRPCPacket(RpcMessage.SettingsRequest, new SettingsRequestT());
+    }
   });
 
   const toggle = () => {
@@ -210,6 +240,7 @@ export function useDanceMode() {
     if (!current) return;
     if (!active) {
       saveBackupIfMissing(formFromSettings(current));
+      savePresetVersion();
       sendRPCPacket(
         RpcMessage.ChangeSettingsRequest,
         buildDanceRequest(DANCE_PRESET, current)
@@ -392,7 +423,7 @@ export function DanceSettings() {
             step={0.1}
           />
         </div>
-        <Advice>Prédiction, entre 20 et 40 %</Advice>
+        <Advice>Prédiction, entre 10 et 30 %</Advice>
       </SettingsPagePaneLayout>
 
       <SettingsPagePaneLayout icon={<WrenchIcon />} id="dance-feet">
@@ -414,10 +445,9 @@ export function DanceSettings() {
 
         <Typography variant="section-title">Correction de glissade</Typography>
         <Explain>
-          Corrige les pieds qui glissent quand tu es immobile, en les « collant
-          » au sol. Pratique en marchant, mais pendant la danse elle peut
-          freiner les glissés, les pivots et le shuffle, car SlimeVR croit que
-          ton pied doit rester en place.
+          Garde tes pieds « collés » au sol tant qu’ils sont posés. Sans elle,
+          les pieds suivent chaque mouvement du bassin et glissent. Si un
+          glissé, un pivot ou un shuffle semble freiné, baisse un peu la force.
         </Explain>
         <CheckBox
           variant="toggle"
@@ -439,13 +469,13 @@ export function DanceSettings() {
             />
           </div>
         )}
-        <Advice>désactivé (ou force faible si tes pieds glissent trop)</Advice>
+        <Advice>activé, force 50 %</Advice>
 
         <Typography variant="section-title">Pied à plat</Typography>
         <Explain>
-          Remet ton pied à plat quand il touche le sol. Ça stabilise en
-          marchant, mais ça peut bloquer les pointes, les talons et les appuis
-          sur le bout du pied.
+          Remet ton pied à plat quand il touche le sol, pour qu’il reste bien
+          posé. Désactive-le seulement si tu danses beaucoup sur les pointes ou
+          les talons.
         </Explain>
         <CheckBox
           variant="toggle"
@@ -454,7 +484,7 @@ export function DanceSettings() {
           name="toggles.footPlant"
           label="Pied à plat au sol"
         />
-        <Advice>désactivé</Advice>
+        <Advice>activé</Advice>
 
         <Typography variant="section-title">Estimation des orteils</Typography>
         <Explain>
@@ -527,9 +557,9 @@ export function DanceSettings() {
           Pendant une longue session, les capteurs peuvent tourner petit à
           petit. La compensation de la dérive apprend de tes recentrages
           (resets) pour corriger cette rotation automatiquement entre deux
-          resets. Elle marche mieux si tu fais quelques resets en début de
-          session. Pense aussi à configurer « Garder Aligné » dans les réglages
-          des capteurs.
+          resets. « Garder Aligné » (dans les réglages des capteurs) fait déjà
+          ce travail en continu, et les deux peuvent se contredire (les jambes
+          tournent alors petit à petit) : garde un seul des deux.
         </Explain>
         <CheckBox
           variant="toggle"
@@ -567,7 +597,7 @@ export function DanceSettings() {
             />
           </div>
         )}
-        <Advice>activée, force 80 %, 6 resets</Advice>
+        <Advice>désactivée si « Garder Aligné » est activé</Advice>
       </SettingsPagePaneLayout>
 
       <SettingsPagePaneLayout icon={<WrenchIcon />} id="dance-reset">
