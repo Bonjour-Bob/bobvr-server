@@ -17,13 +17,12 @@ import {
   TrackingChecklistSteamVRDisconnectedT,
   TrackingChecklistStepId,
 } from 'solarxr-protocol';
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { CheckIcon } from '@/components/commons/icon/CheckIcon';
 import { Typography } from '@/components/commons/Typography';
 import { Button } from '@/components/commons/Button';
 import { ResetButton } from '@/components/home/ResetButton';
 import { A } from '@/components/commons/A';
-import { LoaderIcon, SlimeState } from '@/components/commons/icon/LoaderIcon';
 import { ProgressBar } from '@/components/commons/ProgressBar';
 import { CrossIcon } from '@/components/commons/icon/CrossIcon';
 import {
@@ -522,13 +521,6 @@ export function TrackingChecklist({
   const context = useTrackingChecklist();
   const { visibleSteps, progress, completion, warnings } = context;
 
-  const slimeState = useMemo(() => {
-    if (completion === 'complete') return SlimeState.HAPPY;
-    if (completion === 'incomplete') return SlimeState.CURIOUS;
-    if (completion === 'partial') return SlimeState.SAD;
-    return SlimeState.HAPPY;
-  }, [completion]);
-
   const settingsOpenState = useState(false);
   const [, setSettingsOpen] = settingsOpenState;
 
@@ -647,10 +639,16 @@ export function TrackingChecklist({
             />
           )}
 
+          {/* SlimeVR Mod : petit Bob qui danse (le noir de la video devient transparent) */}
           <div className="absolute bottom-0 right-0 w-20 h-20 overflow-clip pointer-events-none">
-            <div className="-rotate-45 translate-x-3.5 translate-y-3.5">
-              <LoaderIcon slimeState={slimeState} />
-            </div>
+            <video
+              src="/videos/bob-danse.webm"
+              className="w-full h-full object-contain mix-blend-lighten"
+              autoPlay
+              loop
+              muted
+              playsInline
+            />
           </div>
         </div>
       </div>
