@@ -5,7 +5,6 @@ import { MainLayout } from './components/MainLayout';
 import { AppContextProvider } from './components/providers/AppContext';
 import { GeneralSettings } from './components/settings/pages/GeneralSettings';
 import { DanceSettings } from './components/settings/pages/DanceSettings';
-import { ResetPosePage } from './components/onboarding/pages/reset-pose/ResetPosePage';
 import { Serial } from './components/settings/pages/Serial';
 import { SettingsLayout } from './components/settings/SettingsLayout';
 import {
@@ -190,14 +189,6 @@ function Layout() {
               element={<ScaledProportionsPage />}
             />
             <Route path="stay-aligned" element={<StayAlignedSetup />} />
-            <Route
-              path="reset-pose/sitting"
-              element={<ResetPosePage kind="sitting" />}
-            />
-            <Route
-              path="reset-pose/lying"
-              element={<ResetPosePage kind="lying" />}
-            />
           </Route>
           <Route path="*" element={<TopBar />} />
         </Route>

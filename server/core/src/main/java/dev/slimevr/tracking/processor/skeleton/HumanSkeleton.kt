@@ -13,7 +13,6 @@ import dev.slimevr.tracking.processor.config.SkeletonConfigToggles
 import dev.slimevr.tracking.processor.config.SkeletonConfigValues
 import dev.slimevr.tracking.processor.stayaligned.StayAligned
 import dev.slimevr.tracking.processor.stayaligned.trackers.TrackerSkeleton
-import dev.slimevr.tracking.trackers.ResetPose
 import dev.slimevr.tracking.trackers.Tracker
 import dev.slimevr.tracking.trackers.TrackerPosition
 import dev.slimevr.tracking.trackers.TrackerRole
@@ -41,6 +40,7 @@ import kotlin.math.abs
 import kotlin.math.acos
 import kotlin.math.atan2
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.sqrt
 import kotlin.properties.Delegates
 
@@ -61,6 +61,8 @@ private const val HIP_ONLY_MAX_TWIST = 1.05f // ~60 deg
 // SlimeVR Mod: how much the hip joints (and so the knees) follow the pelvis
 private const val PELVIS_TILT_ON_LEGS = 0.5f // part of the pelvis tilt / sway
 private const val PELVIS_TWIST_FROM_LEGS = 0.5f // heading taken from the thighs
+private const val PELVIS_UPRIGHT_MIN = 0.5f // cos 60 deg: lying or legs raised, not used
+private const val PELVIS_UPRIGHT_FULL = 0.87f // cos 30 deg: upright, fully used
 
 class HumanSkeleton(
 	val humanPoseManager: HumanPoseManager,
@@ -975,17 +977,31 @@ class HumanSkeleton(
 		val left = leftUpperLegTracker ?: return hipRot
 		val right = rightUpperLegTracker ?: return hipRot
 
+		// Only when the pelvis is roughly upright: lying down, the hip joints
+		// follow the pelvis fully like in the official version
+		val pelvisUpright = (-hipRot.sandwich(NEG_Y).y).coerceIn(-1f, 1f)
+		val upright = ((pelvisUpright - PELVIS_UPRIGHT_MIN) / (PELVIS_UPRIGHT_FULL - PELVIS_UPRIGHT_MIN)).coerceIn(0f, 1f)
+		if (upright <= 0f) return hipRot
+
 		val hipYaw = hipRot.project(POS_Y).unit()
-		val legsYaw = left.getRotation().interpR(right.getRotation(), 0.5f).project(POS_Y)
-		val heading = if (legsYaw.lenSq() > 1e-6f) {
-			hipYaw.interpR(legsYaw.unit(), PELVIS_TWIST_FROM_LEGS)
-		} else {
-			hipYaw
+
+		// Heading of the thighs, only trusted when both point roughly down
+		// (raised legs give a meaningless heading and would flip the hips)
+		val leftDown = -left.getRotation().sandwich(NEG_Y).y
+		val rightDown = -right.getRotation().sandwich(NEG_Y).y
+		val legsTrust = ((min(leftDown, rightDown) - PELVIS_UPRIGHT_MIN) / (PELVIS_UPRIGHT_FULL - PELVIS_UPRIGHT_MIN)).coerceIn(0f, 1f)
+		var heading = hipYaw
+		if (legsTrust > 0f) {
+			val legsYaw = left.getRotation().interpR(right.getRotation(), 0.5f).project(POS_Y)
+			if (legsYaw.lenSq() > 0.01f) {
+				heading = hipYaw.interpR(legsYaw.unit(), PELVIS_TWIST_FROM_LEGS * legsTrust * upright)
+			}
 		}
 
 		// Tilt and sway of the pelvis, without its heading
 		val tilt = hipYaw.inv() * hipRot
-		return heading * IDENTITY.interpR(tilt, PELVIS_TILT_ON_LEGS)
+		val tiltShare = 1f - (1f - PELVIS_TILT_ON_LEGS) * upright
+		return heading * IDENTITY.interpR(tilt, tiltShare)
 	}
 
 	/**
@@ -1736,18 +1752,14 @@ class HumanSkeleton(
 		)
 
 	@JvmOverloads
-	fun resetTrackersFull(
-		resetSourceName: String?,
-		bodyParts: List<Int> = ArrayList(),
-		pose: ResetPose = ResetPose.STANDING,
-	) {
+	fun resetTrackersFull(resetSourceName: String?, bodyParts: List<Int> = ArrayList()) {
 		humanPoseManager.server?.serverGuards?.onFullReset()
 
 		var referenceRotation = IDENTITY
 		headTracker?.let {
 			if (bodyParts.isEmpty() || bodyParts.contains(BodyPart.HEAD)) {
 				// Always reset the head (ifs in resetsHandler)
-				it.resetsHandler.resetFull(referenceRotation, pose)
+				it.resetsHandler.resetFull(referenceRotation)
 			}
 			referenceRotation = it.getRotation()
 		}
@@ -1756,23 +1768,21 @@ class HumanSkeleton(
 		for (tracker in trackersToReset) {
 			// Only reset if tracker needsReset
 			if (tracker != null && (tracker.allowReset || tracker.isHmd) && (bodyParts.isEmpty() || bodyParts.contains(tracker.trackerPosition?.bodyPart))) {
-				tracker.resetsHandler.resetFull(referenceRotation, pose)
+				tracker.resetsHandler.resetFull(referenceRotation)
 			}
 		}
 
 		// Tell floorclip to reset its floor level on the next update
 		// of the computed trackers
-		// SlimeVR Mod: lying in bed, the feet aren't on the floor, so keep the
-		// floor from the last standing / sitting reset
-		if (!localizer.getEnabled() && pose != ResetPose.LYING) {
+		if (!localizer.getEnabled()) {
 			legTweaks.resetFloorLevel()
 		}
 		// SlimeVR Mod: standing straight, recalibrate the hip-only back estimate
-		if (pose == ResetPose.STANDING) hipOnlyCalibrate = true
+		hipOnlyCalibrate = true
 		legTweaks.resetBuffer()
 		localizer.reset()
 		ikSolver.resetOffsets()
-		LogManager.info("[HumanSkeleton] Reset: full, ${pose.name.lowercase()} ($resetSourceName)")
+		LogManager.info("[HumanSkeleton] Reset: full ($resetSourceName)")
 	}
 
 	@VRServerThread

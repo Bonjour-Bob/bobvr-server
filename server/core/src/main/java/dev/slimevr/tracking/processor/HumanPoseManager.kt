@@ -476,12 +476,8 @@ class HumanPoseManager(val server: VRServer?) {
 	}
 
 	@JvmOverloads
-	fun resetTrackersFull(
-		resetSourceName: String?,
-		bodyParts: List<Int> = ArrayList(),
-		pose: ResetPose = ResetPose.STANDING,
-	) {
-		skeleton.resetTrackersFull(resetSourceName, bodyParts, pose)
+	fun resetTrackersFull(resetSourceName: String?, bodyParts: List<Int> = ArrayList()) {
+		skeleton.resetTrackersFull(resetSourceName, bodyParts)
 		if (server != null) {
 			if (skeleton.headTracker == null && skeleton.neckTracker == null) {
 				server.vrcOSCHandler.yawAlign(IDENTITY)

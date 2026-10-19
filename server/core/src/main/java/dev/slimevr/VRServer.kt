@@ -360,29 +360,17 @@ class VRServer @JvmOverloads constructor(
 		}
 	}
 
-	fun scheduleResetTrackersFull(
-		resetSourceName: String?,
-		delay: Long,
-		bodyParts: List<Int> = ArrayList(),
-		tx: TransactionInfo? = null,
-		pose: ResetPose = ResetPose.STANDING,
-	) {
-		// Report the reset with the type the GUI asked for
-		val resetType = when (pose) {
-			ResetPose.STANDING -> ResetType.Full
-			ResetPose.SITTING -> ResetType.FullSitting
-			ResetPose.LYING -> ResetType.FullLying
-		}
+	fun scheduleResetTrackersFull(resetSourceName: String?, delay: Long, bodyParts: List<Int> = ArrayList(), tx: TransactionInfo? = null) {
 		resetTimer(
 			resetTimerManager,
 			delay,
 			onTick = { progress ->
-				resetHandler.sendStarted(resetType, tx, bodyParts, progress, delay.toInt())
+				resetHandler.sendStarted(ResetType.Full, tx, bodyParts, progress, delay.toInt())
 			},
 			onComplete = {
 				queueTask {
-					humanPoseManager.resetTrackersFull(resetSourceName, bodyParts, pose)
-					resetHandler.sendFinished(resetType, tx, bodyParts, delay.toInt())
+					humanPoseManager.resetTrackersFull(resetSourceName, bodyParts)
+					resetHandler.sendFinished(ResetType.Full, tx, bodyParts, delay.toInt())
 				}
 			},
 		)

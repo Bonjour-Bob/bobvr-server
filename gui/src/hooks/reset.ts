@@ -18,10 +18,7 @@ export type ResetBtnStatus = 'idle' | 'counting' | 'finished';
 
 export type MountingResetGroup = 'default' | 'feet' | 'fingers';
 export type UseResetOptions =
-  | {
-      type:
-        ResetType.Full | ResetType.Yaw | ResetType.FullSitting | ResetType.FullLying;
-    }
+  | { type: ResetType.Full | ResetType.Yaw }
   | { type: ResetType.Mounting; group: MountingResetGroup };
 
 export const BODY_PARTS_GROUPS: Record<MountingResetGroup, BodyPart[]> = {
@@ -120,10 +117,6 @@ export function useReset(
         return 'reset-yaw';
       case ResetType.Full:
         return 'reset-full';
-      case ResetType.FullSitting:
-        return 'reset-full-sitting';
-      case ResetType.FullLying:
-        return 'reset-full-lying';
       case ResetType.Mounting:
         if (options.group !== 'default') return `reset-mounting-${options.group}`;
         return 'reset-mounting';

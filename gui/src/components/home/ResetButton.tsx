@@ -19,12 +19,7 @@ export function ResetButtonIcon(options: UseResetOptions) {
     options.group = 'default';
 
   if (options.type === ResetType.Yaw) return <YawResetIcon width={18} />;
-  if (
-    options.type === ResetType.Full ||
-    options.type === ResetType.FullSitting ||
-    options.type === ResetType.FullLying
-  )
-    return <FullResetIcon width={18} />;
+  if (options.type === ResetType.Full) return <FullResetIcon width={18} />;
   if (options.type === ResetType.Mounting) {
     if (options.group === 'default') return <SkiIcon />;
     if (options.group === 'feet') return <FootIcon />;

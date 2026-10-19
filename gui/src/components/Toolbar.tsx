@@ -13,7 +13,6 @@ import { useAtomValue } from 'jotai';
 import { assignedTrackersAtom } from '@/store/app-store';
 import { useBreakpoint } from '@/hooks/breakpoint';
 import { ReactNode, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ResetButtonIcon } from './home/ResetButton';
 
 const MAINBUTTON_CLASSES = ({ disabled }: { disabled: boolean }) =>
@@ -148,62 +147,6 @@ function BasicResetButton({
   );
 }
 
-// SlimeVR Mod : exemple de position pour les resets assis et allonge
-function PoseHelp({ image, title }: { image: string; title: string }) {
-  return (
-    <div className="flex flex-col items-center gap-2 p-1">
-      <Typography variant="section-title" textAlign="text-center">
-        {title}
-      </Typography>
-      <img
-        src={image}
-        alt={title}
-        className="keep-colors max-h-64 max-w-[18rem] w-auto"
-      />
-    </div>
-  );
-}
-
-// SlimeVR Mod : ouvre la page guidee de calibration assise ou allongee
-function PoseResetLink({
-  kind,
-  label,
-  help,
-}: {
-  kind: 'sitting' | 'lying';
-  label: string;
-  help: ReactNode;
-}) {
-  const navigate = useNavigate();
-  return (
-    <Tooltip content={help} spacing={5} preferedDirection="top">
-      <button
-        type="button"
-        className={classNames(
-          MAINBUTTON_CLASSES({ disabled: false }),
-          'rounded-lg',
-          'absolute'
-        )}
-        onClick={() =>
-          navigate(`/onboarding/reset-pose/${kind}`, {
-            state: { alonePage: true },
-          })
-        }
-      >
-        <ResetButtonIcon type={ResetType.Full} />
-        <div className="hidden md:block relative leading-tight">
-          <Typography
-            variant="section-title"
-            textAlign="text-center"
-            id={label}
-            whitespace="whitespace-normal"
-          />
-        </div>
-      </button>
-    </Tooltip>
-  );
-}
-
 export function Toolbar() {
   const assignedTrackers = useAtomValue(assignedTrackersAtom);
 
@@ -238,43 +181,16 @@ export function Toolbar() {
               nombre de boutons, pour que tout tienne en mode fenetre */}
           <div
             className="flex-col flex gap-1 min-w-0"
-            style={{ flex: '4 1 0' }}
+            style={{ flex: '2 1 0' }}
           >
             <Typography
               variant="section-title"
               id="toolbar-drift_reset"
               truncate
             />
-            <div className="gap-2 md:h-[72px] h-[62px] w-full grid-cols-4 grid">
-              <BasicResetButton
-                type={ResetType.Full}
-                customName="toolbar-drift_reset-full"
-              />
-              {/* SlimeVR Mod : reset complet assis ou allonge */}
-              <PoseResetLink
-                kind="sitting"
-                label="toolbar-drift_reset-sitting"
-                help={
-                  <PoseHelp
-                    image="/images/reset/SittingResetPose.png"
-                    title="Calibration assise"
-                  />
-                }
-              />
-              <PoseResetLink
-                kind="lying"
-                label="toolbar-drift_reset-lying"
-                help={
-                  <PoseHelp
-                    image="/images/reset/LyingResetPose.png"
-                    title="Calibration allongée"
-                  />
-                }
-              />
-              <BasicResetButton
-                type={ResetType.Yaw}
-                customName="toolbar-drift_reset-yaw"
-              />
+            <div className="gap-2 md:h-[72px] h-[62px] w-full grid-cols-2 grid">
+              <BasicResetButton type={ResetType.Full} />
+              <BasicResetButton type={ResetType.Yaw} />
             </div>
           </div>
           <div

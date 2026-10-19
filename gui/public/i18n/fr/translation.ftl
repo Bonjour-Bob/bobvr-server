@@ -257,8 +257,6 @@ reset-reset_all_warning_default-v2 =
     <b>Avertissement:</b> votre hauteur n'a pas été configurée, vos proportions seront réinitialisées aux valeurs par défaut avec la hauteur par défaut.
     Êtes-vous sûr de vouloir faire cela ?
 reset-full = Réinitialisation complète
-reset-full-sitting = Réinitialisation complète (assis)
-reset-full-lying = Réinitialisation complète (allongé)
 reset-mounting = Réinitialiser l'alignement
 reset-mounting-feet = Réinitialiser l'alignement des pieds
 reset-mounting-fingers = Réinitialiser l'alignement des doigts
@@ -1692,9 +1690,5 @@ toolbar-mounting_calibration-default = Corps
 toolbar-mounting_calibration-feet = Pieds
 toolbar-mounting_calibration-fingers = Doigts
 toolbar-drift_reset = Réinitialisation de la dérive
-toolbar-drift_reset-full = Debout
-toolbar-drift_reset-sitting = Assis
-toolbar-drift_reset-yaw = Horizontale
-toolbar-drift_reset-lying = Allongé
 toolbar-assigned_trackers = { $count } capteurs assignés
 toolbar-unassigned_trackers = { $count } capteurs non assignés
