@@ -39,8 +39,13 @@ win:
     - from: "./build-mod/slimevr-openvr-driver-win64"
       to: "slimevr-openvr-driver-win64"
 
+# Reinstaller une version plus recente par-dessus met SlimeVR Mod a jour :
+# meme appId, l'ancienne version est remplacee et les reglages (dans
+# %APPDATA%\dev.slimevr.SlimeVR) sont gardes. Le numero de version est donne
+# par Creer-Installeur-SlimeVR-Mod.bat (date et heure de creation).
 nsis:
   artifactName: "SlimeVR-Mod-Installeur.${ext}"
+  deleteAppDataOnUninstall: false
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
