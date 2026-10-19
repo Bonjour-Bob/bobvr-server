@@ -64,7 +64,15 @@ export function ConnectionLost() {
         <div className="flex flex-col items-center gap-4 -mt-12">
           {isLoading && (
             <>
-              <LoaderIcon slimeState={SlimeState.JUMPY} size={200} />
+              {/* SlimeVR Mod : animation de demarrage */}
+              <video
+                src="/videos/bob-danse.webm"
+                width={260}
+                autoPlay
+                loop
+                muted
+                playsInline
+              />
               <div>
                 <Localized id="websocket-connecting">
                   <Typography variant="main-title" />
