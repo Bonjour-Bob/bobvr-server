@@ -58,6 +58,10 @@ private const val HIP_ONLY_HANDS_FULL_WIDTH = 0.6f
 private const val HIP_ONLY_HANDS_WEIGHT = 0.5f
 private const val HIP_ONLY_MAX_TWIST = 1.05f // ~60 deg
 
+// SlimeVR Mod: how much the hip joints (and so the knees) follow the pelvis
+private const val PELVIS_TILT_ON_LEGS = 0.5f // part of the pelvis tilt / sway
+private const val PELVIS_TWIST_FROM_LEGS = 0.5f // heading taken from the thighs
+
 class HumanSkeleton(
 	val humanPoseManager: HumanPoseManager,
 ) {
@@ -70,8 +74,10 @@ class HumanSkeleton(
 	val hipBone = Bone(BoneType.HIP, Constraint(ConstraintType.TWIST_SWING, 60f, 120f))
 
 	// Lower body bones
-	val leftHipBone = Bone(BoneType.LEFT_HIP, Constraint(ConstraintType.TWIST_SWING, 0f, 15f))
-	val rightHipBone = Bone(BoneType.RIGHT_HIP, Constraint(ConstraintType.TWIST_SWING, 0f, 15f))
+	// SlimeVR Mod: looser than upstream (0, 15) so the hip joints can follow the
+	// pelvis only partly (see legsHipRotation)
+	val leftHipBone = Bone(BoneType.LEFT_HIP, Constraint(ConstraintType.TWIST_SWING, 45f, 45f))
+	val rightHipBone = Bone(BoneType.RIGHT_HIP, Constraint(ConstraintType.TWIST_SWING, 45f, 45f))
 	val leftUpperLegBone = Bone(BoneType.LEFT_UPPER_LEG, Constraint(ConstraintType.TWIST_SWING, 120f, 180f))
 	val rightUpperLegBone = Bone(BoneType.RIGHT_UPPER_LEG, Constraint(ConstraintType.TWIST_SWING, 120f, 180f))
 	val leftLowerLegBone = Bone(BoneType.LEFT_LOWER_LEG, Constraint(ConstraintType.LOOSE_HINGE, 180f, 0f, 50f))
@@ -952,8 +958,34 @@ class HumanSkeleton(
 		}
 
 		// Set left and right hip rotations to the hip's
-		leftHipBone.setRotation(hipBone.getLocalRotation())
-		rightHipBone.setRotation(hipBone.getLocalRotation())
+		// SlimeVR Mod: only partly, so big hip moves don't drag the knees
+		val legsHipRot = legsHipRotation(hipBone.getLocalRotation())
+		leftHipBone.setRotation(legsHipRot)
+		rightHipBone.setRotation(legsHipRot)
+	}
+
+	/**
+	 * SlimeVR Mod: rotation used to place the hip joints (where the legs start).
+	 * Copying the pelvis fully moves the hip joints, and so the knees, a lot
+	 * when swinging or twisting the hips, while in real life the legs absorb
+	 * most of it. Here the hip joints only take part of the pelvis tilt, and
+	 * their heading sits between the pelvis and the thighs.
+	 */
+	private fun legsHipRotation(hipRot: Quaternion): Quaternion {
+		val left = leftUpperLegTracker ?: return hipRot
+		val right = rightUpperLegTracker ?: return hipRot
+
+		val hipYaw = hipRot.project(POS_Y).unit()
+		val legsYaw = left.getRotation().interpR(right.getRotation(), 0.5f).project(POS_Y)
+		val heading = if (legsYaw.lenSq() > 1e-6f) {
+			hipYaw.interpR(legsYaw.unit(), PELVIS_TWIST_FROM_LEGS)
+		} else {
+			hipYaw
+		}
+
+		// Tilt and sway of the pelvis, without its heading
+		val tilt = hipYaw.inv() * hipRot
+		return heading * IDENTITY.interpR(tilt, PELVIS_TILT_ON_LEGS)
 	}
 
 	/**
