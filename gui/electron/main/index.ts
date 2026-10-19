@@ -266,6 +266,8 @@ function createWindow() {
     movable: true,
     frame: false,
     roundedCorners: true,
+    // SlimeVR Mod : icone de Bob dans la barre des taches
+    icon: trayIcon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
