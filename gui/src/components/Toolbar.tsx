@@ -13,6 +13,7 @@ import { useAtomValue } from 'jotai';
 import { assignedTrackersAtom } from '@/store/app-store';
 import { useBreakpoint } from '@/hooks/breakpoint';
 import { ReactNode, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ResetButtonIcon } from './home/ResetButton';
 
 const MAINBUTTON_CLASSES = ({ disabled }: { disabled: boolean }) =>
@@ -152,8 +153,47 @@ function PoseHelp({ image, title }: { image: string; title: string }) {
       <Typography variant="section-title" textAlign="text-center">
         {title}
       </Typography>
-      <img src={image} alt={title} className="w-72 max-w-full" />
+      <img src={image} alt={title} className="w-64 max-w-full" />
     </div>
+  );
+}
+
+// SlimeVR Mod : ouvre la page guidee de calibration assise ou allongee
+function PoseResetLink({
+  kind,
+  label,
+  help,
+}: {
+  kind: 'sitting' | 'lying';
+  label: string;
+  help: ReactNode;
+}) {
+  const navigate = useNavigate();
+  return (
+    <Tooltip content={help} spacing={5} preferedDirection="top">
+      <button
+        type="button"
+        className={classNames(
+          MAINBUTTON_CLASSES({ disabled: false }),
+          'rounded-lg',
+          'absolute'
+        )}
+        onClick={() =>
+          navigate(`/onboarding/reset-pose/${kind}`, {
+            state: { alonePage: true },
+          })
+        }
+      >
+        <ResetButtonIcon type={ResetType.Full} />
+        <div className="hidden md:block relative">
+          <Typography
+            variant="section-title"
+            textAlign="text-center"
+            id={label}
+          />
+        </div>
+      </button>
+    </Tooltip>
   );
 }
 
@@ -192,23 +232,23 @@ export function Toolbar() {
             <div className="gap-2 md:h-[72px] h-[62px] w-full grid-cols-4 grid">
               <BasicResetButton type={ResetType.Full} />
               {/* SlimeVR Mod : reset complet assis ou allonge */}
-              <BasicResetButton
-                type={ResetType.FullSitting}
-                customName="toolbar-drift_reset-sitting"
+              <PoseResetLink
+                kind="sitting"
+                label="toolbar-drift_reset-sitting"
                 help={
                   <PoseHelp
-                    image="/images/reset/SittingResetPose.svg"
-                    title="Réinitialisation complète assis"
+                    image="/images/reset/SittingResetPose.png"
+                    title="Calibration assise"
                   />
                 }
               />
-              <BasicResetButton
-                type={ResetType.FullLying}
-                customName="toolbar-drift_reset-lying"
+              <PoseResetLink
+                kind="lying"
+                label="toolbar-drift_reset-lying"
                 help={
                   <PoseHelp
-                    image="/images/reset/LyingResetPose.svg"
-                    title="Réinitialisation complète allongé"
+                    image="/images/reset/LyingResetPose.png"
+                    title="Calibration allongée"
                   />
                 }
               />
