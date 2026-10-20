@@ -42,6 +42,14 @@ private const val PELVIS_TWIST_FROM_LEGS = 0.5f // heading taken from the thighs
 private const val PELVIS_UPRIGHT_MIN = 0.5f // cos 60 deg: lying or legs raised, not used
 private const val PELVIS_UPRIGHT_FULL = 0.87f // cos 30 deg: upright, fully used
 
+// SlimeVR Mod: when sitting, part of the back's tilt is removed so a slightly
+// slouched back doesn't look folded in two
+private const val SITTING_BACK_STRAIGHTEN = 0.5f
+private const val SITTING_THIGH_START = 0.7f // thighs more upright: standing
+private const val SITTING_THIGH_FULL = 0.3f // thighs close to flat: sitting
+private const val SITTING_PELVIS_LYING = 0.5f // pelvis tilted 60 deg or more: lying
+private const val SITTING_PELVIS_UPRIGHT = 0.7f // pelvis tilted under 45 deg
+
 class HumanSkeleton(
 	val humanPoseManager: HumanPoseManager,
 ) {
@@ -928,11 +936,48 @@ class HumanSkeleton(
 			hipTrackerBone.setRotation(newHipRot)
 		}
 
+		// SlimeVR Mod: less back bend when sitting
+		straightenBackWhenSitting()
+
 		// Set left and right hip rotations to the hip's
 		// SlimeVR Mod: only partly, so big hip moves don't drag the knees
 		val legsHipRot = legsHipRotation(hipBone.getLocalRotation())
 		leftHipBone.setRotation(legsHipRot)
 		rightHipBone.setRotation(legsHipRot)
+	}
+
+	/**
+	 * SlimeVR Mod: sitting slightly slouched, the trackers on the chest and the
+	 * pelvis tilt much more than the spine really bends, so the back looks
+	 * folded. When the thighs are close to flat (sitting), the upper back bones
+	 * lose part of their tilt. The pelvis isn't touched, so the legs stay put.
+	 */
+	private fun straightenBackWhenSitting() {
+		val left = leftUpperLegTracker ?: return
+		val right = rightUpperLegTracker ?: return
+
+		// How upright the thighs are: 1 standing, 0 sitting
+		val thighs = (-left.getRotation().sandwich(NEG_Y).y - right.getRotation().sandwich(NEG_Y).y) / 2f
+		val sitting = ((SITTING_THIGH_START - thighs) / (SITTING_THIGH_START - SITTING_THIGH_FULL)).coerceIn(0f, 1f)
+		if (sitting <= 0f) return
+
+		// Not when lying down (pelvis close to flat)
+		val pelvisUpright = -hipBone.getLocalRotation().sandwich(NEG_Y).y
+		val notLying = ((pelvisUpright - SITTING_PELVIS_LYING) / (SITTING_PELVIS_UPRIGHT - SITTING_PELVIS_LYING)).coerceIn(0f, 1f)
+		val amount = SITTING_BACK_STRAIGHTEN * sitting * notLying
+		if (amount <= 0f) return
+
+		fun straighten(rot: Quaternion): Quaternion {
+			val yaw = rot.project(POS_Y)
+			if (yaw.lenSq() < 1e-6f) return rot
+			return rot.interpR(yaw.unit(), amount)
+		}
+
+		val upperChestRot = straighten(upperChestBone.getLocalRotation())
+		upperChestBone.setRotation(upperChestRot)
+		chestTrackerBone.setRotation(upperChestRot)
+		chestBone.setRotation(straighten(chestBone.getLocalRotation()))
+		waistBone.setRotation(straighten(waistBone.getLocalRotation()))
 	}
 
 	/**
