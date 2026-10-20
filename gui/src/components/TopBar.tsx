@@ -40,7 +40,7 @@ export function VersionTag() {
       }
     >
       {/* SlimeVR Mod : nom du mod a la place du numero de version */}
-      BOBvr-Beta by Bonjour-
+      BOBvr-Beta v0.3 by Bonjour-
     </div>
   );
 }
