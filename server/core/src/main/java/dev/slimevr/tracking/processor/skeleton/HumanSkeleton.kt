@@ -44,7 +44,7 @@ private const val PELVIS_UPRIGHT_FULL = 0.87f // cos 30 deg: upright, fully used
 
 // SlimeVR Mod: when sitting, part of the back's tilt is removed so a slightly
 // slouched back doesn't look folded in two
-private const val SITTING_BACK_STRAIGHTEN = 0.5f
+private const val SITTING_BACK_STRAIGHTEN = 0.6f
 private const val SITTING_THIGH_START = 0.7f // thighs more upright: standing
 private const val SITTING_THIGH_FULL = 0.3f // thighs close to flat: sitting
 private const val SITTING_PELVIS_LYING = 0.5f // pelvis tilted 60 deg or more: lying
@@ -953,8 +953,6 @@ class HumanSkeleton(
 	 * lose part of their tilt. The pelvis isn't touched, so the legs stay put.
 	 */
 	private fun straightenBackWhenSitting() {
-		// Off with "Genoux etendus" off (mode 1:1): follow the trackers exactly
-		if (!extendedKneeModel) return
 		val left = leftUpperLegTracker ?: return
 		val right = rightUpperLegTracker ?: return
 
