@@ -65,7 +65,26 @@ protocol.registerSchemesAsPrivileged([
 
 let mainWindow: BrowserWindow | null = null;
 
+// SlimeVR Mod : site de BOBvr (mises a jour)
+const MOD_SITE = 'https://bonjour-bobvr.netlify.app';
+
 handleIpc(IPC_CHANNELS.GH_FETCH, async (e, options) => {
+  if (options.type === 'mod-site') {
+    // version.json si le site en a un, sinon la page d'accueil
+    const text = (url: string) =>
+      fetch(`${url}?t=${Date.now()}`)
+        .then((res) => (res.ok ? res.text() : null))
+        .catch(() => null);
+    let json = await text(`${MOD_SITE}/version.json`);
+    // Un site qui renvoie sa page pour toute adresse n'a pas de vrai version.json
+    try {
+      if (json) JSON.parse(json);
+    } catch {
+      json = null;
+    }
+    const html = json ? null : await text(MOD_SITE);
+    return { json, html };
+  }
   if (options.type === 'fw-releases') {
     return fetch(
       'https://api.github.com/repos/SlimeVR/SlimeVR-Tracker-ESP/releases'

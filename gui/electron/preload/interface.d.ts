@@ -21,8 +21,13 @@ export interface CrossStorage {
   save(): Promise<boolean>;
 }
 
-export type GHGet = { type: 'fw-releases' } | { type: 'asset'; url: string };
+export type GHGet =
+  | { type: 'fw-releases' }
+  | { type: 'asset'; url: string }
+  // SlimeVR Mod : site de BOBvr, pour savoir s'il y a une mise a jour
+  | { type: 'mod-site' };
 export type GHReturn = {
+  ['mod-site']: { json: string | null; html: string | null };
   asset: [number, string][] | null;
   ['fw-releases']:
     | {
@@ -35,8 +40,7 @@ export type GHReturn = {
 };
 
 export type DiscordPresence =
-  | { enable: false }
-  | { enable: true; activity: string; iconText: string | undefined };
+  { enable: false } | { enable: true; activity: string; iconText: string | undefined };
 
 export interface IElectronAPI {
   onServerStatus: (cb: (data: ServerStatusEvent) => void) => () => void;

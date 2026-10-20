@@ -2,7 +2,7 @@
 // Grosse mise a jour : +0.1 (0.7 -> 0.8), major: true.
 // Petite mise a jour (correctif, petit reglage) : +0.0.1 (0.7 -> 0.7.1).
 // Ajouter les nouveautes en haut de MOD_CHANGELOG a chaque fois.
-export const MOD_VERSION = '0.7.2';
+export const MOD_VERSION = '0.8';
 
 export type ModChangelogEntry = {
   version: string;
@@ -11,6 +11,13 @@ export type ModChangelogEntry = {
 };
 
 export const MOD_CHANGELOG: ModChangelogEntry[] = [
+  {
+    version: '0.8',
+    major: true,
+    changes: [
+      'Alerte de mise à jour : l’app prévient quand une nouvelle version de BOBvr est sur le site bonjour-bobvr.netlify.app, avec un bouton pour la télécharger.',
+    ],
+  },
   {
     version: '0.7.2',
     changes: ['« Mise à jour » est écrit sous le bouton « ? » en haut.'],
