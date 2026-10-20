@@ -20,7 +20,7 @@ import { useConfig } from '@/hooks/config';
 import { useBHV } from '@/hooks/bvh';
 import { usePauseTracking } from '@/hooks/pause-tracking';
 import { PlayIcon } from './commons/icon/PlayIcon';
-import { useDanceMode } from './settings/pages/DanceSettings';
+import { useModProfiles } from './settings/pages/DanceSettings';
 
 // SlimeVR Mod : icone du mode danse (une note de musique)
 function DanceIcon({ width = 20 }: { width?: number }) {
@@ -42,7 +42,9 @@ export function PreviewControls({ open }: { open: boolean }) {
     available: bvhAvailable,
   } = useBHV();
   const { paused, toggle: toggleTracking } = usePauseTracking();
-  const { active: danceMode, toggle: toggleDanceMode } = useDanceMode();
+  const { active: profile, toggle: toggleProfile } = useModProfiles();
+  const danceMode = profile === 'dance';
+  const oneToOneMode = profile === 'one-to-one';
 
   const { cmFormat } = useMemo(() => {
     const cmFormat = Intl.NumberFormat(currentLocales, {
@@ -150,9 +152,31 @@ export function PreviewControls({ open }: { open: boolean }) {
                 { 'bg-background-60 text-background-10': danceMode },
                 { 'text-background-30': !danceMode }
               )}
-              onClick={() => toggleDanceMode()}
+              onClick={() => toggleProfile('dance')}
             >
               <DanceIcon width={20} />
+            </div>
+          </Tooltip>
+          {/* SlimeVR Mod : mode 1:1, suivre les trackers le plus fidelement */}
+          <Tooltip
+            content={
+              <Typography variant="section-title">
+                {oneToOneMode
+                  ? 'Mode 1:1 activé (clique pour revenir à tes réglages)'
+                  : 'Mode 1:1 : suivre tes trackers au plus juste, sans correction'}
+              </Typography>
+            }
+            preferedDirection="top"
+          >
+            <div
+              className={classNames(
+                'flex justify-center items-center w-10 h-10 rounded-full hover:bg-background-60 cursor-pointer text-standard-bold',
+                { 'bg-background-60 text-background-10': oneToOneMode },
+                { 'text-background-30': !oneToOneMode }
+              )}
+              onClick={() => toggleProfile('one-to-one')}
+            >
+              1:1
             </div>
           </Tooltip>
         </div>

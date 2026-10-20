@@ -73,7 +73,56 @@ const DANCE_PRESET: DanceForm = {
   resets: { yawResetSmoothTime: 0.2 },
 };
 
+// Profil 1:1 : suivre les trackers le plus fidelement possible. Pas de
+// filtrage, pas de genoux etendus (ce qui coupe aussi les corrections du mod
+// sur les hanches, les genoux et le dos), et juste ce qu'il faut pour que les
+// pieds ne glissent pas.
+const ONE_TO_ONE_PRESET: DanceForm = {
+  filtering: { type: FilteringType.NONE.toString(), amount: 0.1 },
+  toggles: {
+    floorClip: true,
+    skatingCorrection: true,
+    footPlant: false,
+    toeSnap: false,
+    extendedSpine: true,
+    extendedPelvis: true,
+    extendedKnee: false,
+    enforceConstraints: false,
+  },
+  legTweaks: { correctionStrength: 0.2 },
+  drift: { enabled: false, prediction: false, amount: 0.8, maxResets: 6 },
+  resets: { yawResetSmoothTime: 0 },
+};
+
+export type ModProfile = 'dance' | 'one-to-one';
+
+const PROFILE_PRESETS: Record<ModProfile, DanceForm> = {
+  dance: DANCE_PRESET,
+  'one-to-one': ONE_TO_ONE_PRESET,
+};
+
+// The backup holds the user's own settings while a profile is on (one backup
+// shared by both profiles, so switching between them keeps the real settings)
 const BACKUP_KEY = 'slimevr-mod-dance-backup';
+const ACTIVE_PROFILE_KEY = 'slimevr-mod-active-profile';
+
+function readActiveProfile(): ModProfile | null {
+  if (readBackup() === null) return null;
+  try {
+    const value = localStorage.getItem(ACTIVE_PROFILE_KEY);
+    return value === 'one-to-one' ? 'one-to-one' : 'dance';
+  } catch {
+    return 'dance';
+  }
+}
+
+function saveActiveProfile(profile: ModProfile) {
+  try {
+    localStorage.setItem(ACTIVE_PROFILE_KEY, profile);
+  } catch {
+    // ignore
+  }
+}
 const PRESET_VERSION_KEY = 'slimevr-mod-dance-preset-version';
 
 function readPresetVersion(): string | null {
@@ -204,19 +253,22 @@ function saveBackupIfMissing(values: DanceForm) {
 function clearBackup() {
   try {
     localStorage.removeItem(BACKUP_KEY);
+    localStorage.removeItem(ACTIVE_PROFILE_KEY);
   } catch {
     // Nothing to clear
   }
 }
 
 /**
- * Dance mode: on applies the dance preset, off brings back the settings saved
- * just before. Shared with the "Danse" settings page.
+ * Mod profiles (dance, 1:1): turning one on applies its preset, turning it off
+ * brings back the settings saved just before. Shared with the "Danse" page.
  */
-export function useDanceMode() {
+export function useModProfiles() {
   const { sendRPCPacket, useRPCPacket } = useWebsocketAPI();
   const settingsRef = useRef<SettingsResponseT | null>(null);
-  const [active, setActive] = useState(() => readBackup() !== null);
+  const [active, setActive] = useState<ModProfile | null>(() =>
+    readActiveProfile()
+  );
 
   useEffect(() => {
     sendRPCPacket(RpcMessage.SettingsRequest, new SettingsRequestT());
@@ -224,10 +276,10 @@ export function useDanceMode() {
 
   useRPCPacket(RpcMessage.SettingsResponse, (s: SettingsResponseT) => {
     settingsRef.current = s;
-    const isActive = readBackup() !== null;
-    setActive(isActive);
+    const profile = readActiveProfile();
+    setActive(profile);
     // Dance mode turned on with an older preset: switch to the new one
-    if (isActive && readPresetVersion() !== DANCE_PRESET_VERSION) {
+    if (profile === 'dance' && readPresetVersion() !== DANCE_PRESET_VERSION) {
       savePresetVersion();
       sendRPCPacket(
         RpcMessage.ChangeSettingsRequest,
@@ -237,18 +289,11 @@ export function useDanceMode() {
     }
   });
 
-  const toggle = () => {
+  const toggle = (profile: ModProfile) => {
     const current = settingsRef.current;
     if (!current) return;
-    if (!active) {
-      saveBackupIfMissing(formFromSettings(current));
-      savePresetVersion();
-      sendRPCPacket(
-        RpcMessage.ChangeSettingsRequest,
-        buildDanceRequest(DANCE_PRESET, current)
-      );
-      setActive(true);
-    } else {
+    if (readActiveProfile() === profile) {
+      // Turn it off: back to the user's own settings
       const backup = readBackup();
       if (backup) {
         sendRPCPacket(
@@ -257,7 +302,17 @@ export function useDanceMode() {
         );
       }
       clearBackup();
-      setActive(false);
+      setActive(null);
+    } else {
+      // Turn it on (from the user's settings or from the other profile)
+      saveBackupIfMissing(formFromSettings(current));
+      saveActiveProfile(profile);
+      if (profile === 'dance') savePresetVersion();
+      sendRPCPacket(
+        RpcMessage.ChangeSettingsRequest,
+        buildDanceRequest(PROFILE_PRESETS[profile], current)
+      );
+      setActive(profile);
     }
     sendRPCPacket(RpcMessage.SettingsRequest, new SettingsRequestT());
   };
@@ -333,6 +388,8 @@ export function DanceSettings() {
 
   const applyDancePreset = () => {
     saveBackupIfMissing(getValues());
+    saveActiveProfile('dance');
+    savePresetVersion();
     setHasBackup(readBackup() !== null);
     applyValues(DANCE_PRESET);
     setMessage('Profil danse appliqué.');
