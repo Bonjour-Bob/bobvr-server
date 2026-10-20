@@ -37,8 +37,8 @@ import kotlin.math.min
 import kotlin.properties.Delegates
 
 // SlimeVR Mod: how much the hip joints (and so the knees) follow the pelvis
-private const val PELVIS_TILT_ON_LEGS = 0.5f // part of the pelvis tilt / sway
-private const val PELVIS_TWIST_FROM_LEGS = 0.5f // heading taken from the thighs
+private const val PELVIS_TILT_ON_LEGS = 0.3f // part of the pelvis tilt / sway
+private const val PELVIS_TWIST_FROM_LEGS = 0.7f // heading taken from the thighs
 private const val PELVIS_UPRIGHT_MIN = 0.5f // cos 60 deg: lying or legs raised, not used
 private const val PELVIS_UPRIGHT_FULL = 0.87f // cos 30 deg: upright, fully used
 

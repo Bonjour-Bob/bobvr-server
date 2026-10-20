@@ -53,7 +53,9 @@ export type DanceForm = {
 // Point de depart conseille pour la danse (a ajuster selon ton style).
 // v2 : pieds colles au sol (glissade + pied a plat), prediction plus douce et
 // compensation de derive coupee (Garder Aligne s'en charge, les deux se genent).
-const DANCE_PRESET_VERSION = '2';
+// v3 : correction de glissade moins forte et limites des articulations coupees,
+// pour eviter les petits blocages quand on tourne les hanches en danse basse.
+const DANCE_PRESET_VERSION = '3';
 const DANCE_PRESET: DanceForm = {
   filtering: { type: FilteringType.PREDICTION.toString(), amount: 0.2 },
   toggles: {
@@ -64,9 +66,9 @@ const DANCE_PRESET: DanceForm = {
     extendedSpine: true,
     extendedPelvis: true,
     extendedKnee: true,
-    enforceConstraints: true,
+    enforceConstraints: false,
   },
-  legTweaks: { correctionStrength: 0.5 },
+  legTweaks: { correctionStrength: 0.3 },
   drift: { enabled: false, prediction: false, amount: 0.8, maxResets: 6 },
   resets: { yawResetSmoothTime: 0.2 },
 };
@@ -469,7 +471,7 @@ export function DanceSettings() {
             />
           </div>
         )}
-        <Advice>activé, force 50 %</Advice>
+        <Advice>activé, force 30 %</Advice>
 
         <Typography variant="section-title">Pied à plat</Typography>
         <Explain>
@@ -538,8 +540,8 @@ export function DanceSettings() {
         </Typography>
         <Explain>
           Empêche les articulations de prendre des positions impossibles (un
-          genou à l’envers, par exemple). Garde-le activé, sauf si un mouvement
-          très souple semble bloqué.
+          genou à l’envers, par exemple). En danse, ces limites peuvent faire de
+          petits blocages quand tu tournes beaucoup les hanches.
         </Explain>
         <CheckBox
           variant="toggle"
@@ -548,7 +550,7 @@ export function DanceSettings() {
           name="toggles.enforceConstraints"
           label="Limites des articulations"
         />
-        <Advice>activé</Advice>
+        <Advice>désactivé</Advice>
       </SettingsPagePaneLayout>
 
       <SettingsPagePaneLayout icon={<WrenchIcon />} id="dance-drift">
