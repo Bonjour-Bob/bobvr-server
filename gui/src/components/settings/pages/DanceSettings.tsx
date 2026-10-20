@@ -55,12 +55,14 @@ export type DanceForm = {
 // compensation de derive coupee (Garder Aligne s'en charge, les deux se genent).
 // v3 : correction de glissade moins forte et limites des articulations coupees,
 // pour eviter les petits blocages quand on tourne les hanches en danse basse.
-const DANCE_PRESET_VERSION = '3';
+// v4 : plus de correction de glissade (les pieds se bloquaient puis se
+// relachaient d'un coup en les levant)
+const DANCE_PRESET_VERSION = '4';
 const DANCE_PRESET: DanceForm = {
   filtering: { type: FilteringType.PREDICTION.toString(), amount: 0.2 },
   toggles: {
     floorClip: true,
-    skatingCorrection: true,
+    skatingCorrection: false,
     footPlant: true,
     toeSnap: false,
     extendedSpine: true,
@@ -73,13 +75,13 @@ const DANCE_PRESET: DanceForm = {
   resets: { yawResetSmoothTime: 0.2 },
 };
 
-// Profil 1:1 : suivre les trackers le plus fidelement possible. Pas de
-// filtrage, pas de genoux etendus (ce qui coupe aussi les corrections du mod
+// Profil 1:1 : suivre les trackers le plus fidelement possible. Filtrage
+// leger (prediction 20 %, sans filtrage les jambes saccadent), pas de genoux etendus (ce qui coupe aussi les corrections du mod
 // sur les hanches, les genoux et le dos), et juste ce qu'il faut pour que les
 // pieds ne traversent pas le sol. Pas de correction de glissade : elle bloque
 // les pieds au sol puis les relache d'un coup, ce n'est pas fluide.
 const ONE_TO_ONE_PRESET: DanceForm = {
-  filtering: { type: FilteringType.NONE.toString(), amount: 0.1 },
+  filtering: { type: FilteringType.PREDICTION.toString(), amount: 0.2 },
   toggles: {
     floorClip: true,
     skatingCorrection: false,
@@ -121,7 +123,8 @@ function readActiveProfile(): ModProfile | null {
 // fois (sur ce PC), ensuite l'utilisateur peut tout changer librement.
 const ONE_TO_ONE_DEFAULT_KEY = 'slimevr-mod-1to1-default';
 // v2 : sans correction de glissade
-const ONE_TO_ONE_DEFAULT_VERSION = '2';
+// v3 : prediction 20 % (sans filtrage c'etait saccade)
+const ONE_TO_ONE_DEFAULT_VERSION = '3';
 
 function needsOneToOneDefault(): boolean {
   try {
@@ -578,7 +581,9 @@ export function DanceSettings() {
             />
           </div>
         )}
-        <Advice>activé, force 30 %</Advice>
+        <Advice>
+          désactivé (sinon les pieds se bloquent puis se relâchent d’un coup)
+        </Advice>
 
         <Typography variant="section-title">Pied à plat</Typography>
         <Explain>
