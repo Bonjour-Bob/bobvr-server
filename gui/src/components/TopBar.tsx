@@ -14,7 +14,7 @@ import { SlimeVRIcon } from './commons/icon/SimevrIcon';
 import { ProgressBar } from './commons/ProgressBar';
 import { Typography } from './commons/Typography';
 import { DownloadIcon } from './commons/icon/DownloadIcon';
-import { DOCS_SITE, GH_REPO, VersionContext } from '@/App';
+import { GH_REPO, VersionContext } from '@/App';
 import classNames from 'classnames';
 import { QuestionIcon } from './commons/icon/QuestionIcon';
 import { useBreakpoint } from '@/hooks/breakpoint';
@@ -27,6 +27,7 @@ import { connectedIMUTrackersAtom } from '@/store/app-store';
 import { useElectron } from '@/hooks/electron';
 import { openUrl } from '@/hooks/crossplatform';
 import { MOD_VERSION } from '@/mod-version';
+import { ModChangelogModal } from './ModChangelogModal';
 
 export function VersionTag() {
   return (
@@ -62,6 +63,8 @@ export function TopBar({
   const [showConnectedTrackersWarning, setConnectedTrackerWarning] =
     useState(false);
   const [showTrayOrExitModal, setShowTrayOrExitModal] = useState(false);
+  // SlimeVR Mod : le bouton « ? » montre les nouveautes du mod
+  const [showChangelog, setShowChangelog] = useState(false);
   const doesMatchSettings = useMatch({
     path: '/settings/*',
   });
@@ -220,11 +223,15 @@ export function TopBar({
                   'flex items-center justify-center stroke-window-icon',
                   'hover:bg-background-60 rounded-full w-7 h-7 cursor-pointer'
                 )}
-                onClick={() => openUrl(DOCS_SITE)}
+                onClick={() => setShowChangelog(true)}
               >
                 <QuestionIcon />
               </div>
             )}
+            <ModChangelogModal
+              isOpen={showChangelog}
+              onClose={() => setShowChangelog(false)}
+            />
             {electron.isElectron && (
               <>
                 <div
