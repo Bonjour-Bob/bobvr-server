@@ -1127,6 +1127,7 @@ onboarding-assign_trackers-option-label =
         [lower-body] Kit du bas du corps
         [core] Kit de base
         [enhanced-core] Kit de base renforcé
+        [feet-elbows] Kit pieds et coudes
         [full-body] Kit du corps complet
        *[all] Tous les capteurs
     }
@@ -1135,6 +1136,7 @@ onboarding-assign_trackers-option-description =
         [lower-body] Hanche + jambes, comme un Vive (sans capteur au torse)
         [core] + Suivi amélioré de la colonne vertébrale
         [enhanced-core] + Rotation des pieds
+        [feet-elbows] Torse, hanche, cuisses, pieds et coudes (sans tibias)
         [full-body] + Suivi des coudes
        *[all] Toutes les attributions de capteurs disponibles
     }

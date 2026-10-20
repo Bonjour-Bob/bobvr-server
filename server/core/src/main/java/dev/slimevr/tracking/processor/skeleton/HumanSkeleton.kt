@@ -33,7 +33,9 @@ import io.github.axisangles.ktmath.Vector3.Companion.NULL
 import io.github.axisangles.ktmath.Vector3.Companion.POS_Y
 import solarxr_protocol.datatypes.BodyPart
 import java.lang.IllegalArgumentException
+import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sqrt
 import kotlin.properties.Delegates
 
 // SlimeVR Mod: how much the hip joints (and so the knees) follow the pelvis
@@ -50,6 +52,10 @@ private const val SITTING_BACK_STRAIGHTEN = 0.6f
 private const val HIP_ONLY_CHEST_TILT = 0.3f // part of the pelvis tilt / sway the chest takes
 private const val HIP_ONLY_HEAD_TWIST = 0.4f // part of the head's turn the chest takes
 private const val HIP_ONLY_MAX_TWIST = 1.05f // ~60 deg
+
+// SlimeVR Mod: shin estimate without shin trackers
+private const val SHIN_LIFT_MARGIN = 0.2f // knee higher than shin + 20%: foot lifted
+private const val SHIN_FLAT_MIN = 0.7f // foot tilted more than ~45 deg: follow the foot
 private const val SITTING_THIGH_START = 0.7f // thighs more upright: standing
 private const val SITTING_THIGH_FULL = 0.3f // thighs close to flat: sitting
 private const val SITTING_PELVIS_LYING = 0.5f // pelvis tilted 60 deg or more: lying
@@ -226,6 +232,10 @@ class HumanSkeleton(
 	private var hipFromChestLegsAveraging = 0f
 	private var hipFromWaistLegsAveraging = 0f
 	private var hipLegsAveraging = 0f
+
+	// SlimeVR Mod: floor height for the shin estimate (no shin trackers)
+	private var shinFloorY: Float? = null
+	private var shinFloorCalibrateFrames = 0
 
 	private var kneeTrackerAnkleAveraging = 0f
 	private var kneeAnkleAveraging = 0f
@@ -956,6 +966,60 @@ class HumanSkeleton(
 	}
 
 	/**
+	 * SlimeVR Mod: shin direction without a shin tracker (feet + elbows set).
+	 * - Foot flat on the floor: the ankle is on the floor under the knee, so
+	 *   the shin is tilted just enough to reach it (forward like in a squat).
+	 * - Foot lifted or tilted: the shin follows the foot (ankle at ~90 deg).
+	 * The floor height is taken at the standing full reset (legs straight).
+	 */
+	private fun estimateShin(upperLegBone: Bone, lowerLegBone: Bone, footTracker: Tracker, thighRot: Quaternion): Quaternion {
+		val knee = upperLegBone.getTailPosition() // last frame, close enough
+		val shinLength = lowerLegBone.length
+		val footRot = footTracker.getRotation()
+
+		// Shin following the foot: normally the shin is at ~90 deg from the
+		// foot (down along the foot's "up"). Kneeling, the foot lies upside
+		// down in line with the shin (toes pointing away from the knee).
+		val footUp = footRot.sandwich(POS_Y)
+		val footForward = footRot.sandwich(Vector3(0f, 0f, -1f))
+		val inLine = ((0.2f - footUp.y) / 0.6f).coerceIn(0f, 1f)
+		val fromFoot = -footUp * (1f - inLine) + footForward * inLine
+
+		// Calibrate the floor a few frames after a standing reset
+		if (shinFloorCalibrateFrames > 0) {
+			shinFloorCalibrateFrames--
+			if (shinFloorCalibrateFrames == 0) shinFloorY = knee.y - shinLength
+		}
+
+		var direction = fromFoot
+		val floorY = shinFloorY
+		if (floorY != null && shinLength > 0.05f) {
+			val drop = knee.y - floorY
+			// 1 when the foot can reach the floor, 0 when it's clearly lifted
+			val onFloor = (1f - (drop - shinLength) / (shinLength * SHIN_LIFT_MARGIN)).coerceIn(0f, 1f)
+			// Only for a foot that is about flat
+			val flat = ((footUp.y - SHIN_FLAT_MIN) / (1f - SHIN_FLAT_MIN)).coerceIn(0f, 1f)
+			val weight = onFloor * flat
+			if (weight > 0f) {
+				val down = drop.coerceIn(0f, shinLength)
+				val across = sqrt(max(shinLength * shinLength - down * down, 0f))
+				// The ankle sits behind the knee along the foot's heading
+				val flatForward = Vector3(footForward.x, 0f, footForward.z)
+				val ahead = if (flatForward.lenSq() > 1e-6f) flatForward.unit() else Vector3(0f, 0f, -1f)
+				val toAnkle = Vector3(-ahead.x * across, -down, -ahead.z * across)
+				val fromFloor = if (toAnkle.lenSq() > 1e-6f) toAnkle.unit() else NEG_Y
+				direction = (fromFoot * (1f - weight) + fromFloor * weight)
+			}
+		}
+		if (direction.lenSq() < 1e-6f) return thighRot.project(POS_Y).unit()
+
+		// Shin pointing that way, keeping the heading of the thigh
+		val thighYaw = thighRot.project(POS_Y).unit()
+		val localDir = thighYaw.inv().sandwich(direction.unit())
+		return thighYaw * fromTo(NEG_Y, localDir)
+	}
+
+	/**
 	 * SlimeVR Mod: with only a hip tracker, the whole back used to copy the
 	 * pelvis, so swinging or tilting the hips moved the chest too. Now the
 	 * chest stays upright and only takes a small part of the pelvis tilt, and
@@ -1100,8 +1164,13 @@ class HumanSkeleton(
 			// Get lower leg rotation
 			legRot = it.getRotation()
 		} ?: run {
-			// Use lower leg or hip's yaw
-			legRot = legRot.project(POS_Y).unit()
+			// SlimeVR Mod: no shin tracker but a foot tracker, estimate the shin
+			footTracker?.let { foot ->
+				legRot = estimateShin(upperLegBone, lowerLegBone, foot, legRot)
+			} ?: run {
+				// Use lower leg or hip's yaw
+				legRot = legRot.project(POS_Y).unit()
+			}
 		}
 		// Set lower leg rotation
 		lowerLegBone.setRotation(legRot)
@@ -1720,6 +1789,8 @@ class HumanSkeleton(
 		if (!localizer.getEnabled()) {
 			legTweaks.resetFloorLevel()
 		}
+		// SlimeVR Mod: standing straight, take the floor for the shin estimate
+		shinFloorCalibrateFrames = 5
 		legTweaks.resetBuffer()
 		localizer.reset()
 		ikSolver.resetOffsets()

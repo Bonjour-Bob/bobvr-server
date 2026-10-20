@@ -14,6 +14,7 @@ const ASSIGN_MODE_OPTIONS = [
   AssignMode.LowerBody,
   AssignMode.Core,
   AssignMode.EnhancedCore,
+  AssignMode.FeetElbows,
   AssignMode.FullBody,
   AssignMode.All,
 ].reduce(

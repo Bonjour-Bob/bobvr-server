@@ -1134,6 +1134,7 @@ onboarding-assign_trackers-option-label = { $mode ->
     [lower-body] Lower-Body Set
     [core] Core Set
     [enhanced-core] Enhanced Core Set
+    [feet-elbows] Feet and Elbows Set
     [full-body] Full-Body Set
     *[all] All Trackers
 }
@@ -1141,6 +1142,7 @@ onboarding-assign_trackers-option-description = { $mode ->
     [lower-body] Hip + legs, like a Vive (no chest tracker)
     [core] + Enhanced spine tracking
     [enhanced-core] + Foot rotation
+    [feet-elbows] Chest, hip, thighs, feet and elbows (no shins)
     [full-body] + Elbow tracking
     *[all] All available tracker assignments
 }

@@ -17,6 +17,8 @@ export enum AssignMode {
   LowerBody = 'lower-body',
   Core = 'core',
   EnhancedCore = 'enhanced-core',
+  // SlimeVR Mod : 8 capteurs, pieds et coudes au lieu des tibias
+  FeetElbows = 'feet-elbows',
   FullBody = 'full-body',
   All = 'all',
 }
