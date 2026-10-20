@@ -83,7 +83,7 @@ const DANCE_PRESET: DanceForm = {
 const ONE_TO_ONE_PRESET: DanceForm = {
   filtering: { type: FilteringType.PREDICTION.toString(), amount: 0.2 },
   toggles: {
-    floorClip: true,
+    floorClip: false,
     skatingCorrection: false,
     footPlant: false,
     toeSnap: false,
@@ -124,7 +124,8 @@ function readActiveProfile(): ModProfile | null {
 const ONE_TO_ONE_DEFAULT_KEY = 'slimevr-mod-1to1-default';
 // v2 : sans correction de glissade
 // v3 : prediction 20 % (sans filtrage c'etait saccade)
-const ONE_TO_ONE_DEFAULT_VERSION = '3';
+// v4 : sans blocage au sol (il retenait le pied quand on leve la jambe)
+const ONE_TO_ONE_DEFAULT_VERSION = '4';
 
 function needsOneToOneDefault(): boolean {
   try {
