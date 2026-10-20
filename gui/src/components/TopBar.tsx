@@ -218,14 +218,22 @@ export function TopBar({
             </NavLink>
 
             {!isMobile && (
+              // SlimeVR Mod : « Mise à jour » sous le point d'interrogation
               <div
-                className={classNames(
-                  'flex items-center justify-center stroke-window-icon',
-                  'hover:bg-background-60 rounded-full w-7 h-7 cursor-pointer'
-                )}
+                className="flex flex-col items-center justify-center cursor-pointer group"
                 onClick={() => setShowChangelog(true)}
               >
-                <QuestionIcon />
+                <div
+                  className={classNames(
+                    'flex items-center justify-center stroke-window-icon',
+                    'group-hover:bg-background-60 rounded-full w-6 h-6'
+                  )}
+                >
+                  <QuestionIcon />
+                </div>
+                <span className="text-[9px] leading-none text-background-20 whitespace-nowrap">
+                  Mise à jour
+                </span>
               </div>
             )}
             <ModChangelogModal
