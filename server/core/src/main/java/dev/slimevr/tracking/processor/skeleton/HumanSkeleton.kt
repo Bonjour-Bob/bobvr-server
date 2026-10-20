@@ -1,6 +1,5 @@
 package dev.slimevr.tracking.processor.skeleton
 
-import com.jme3.math.FastMath
 import dev.slimevr.VRServer
 import dev.slimevr.config.MountingMethods
 import dev.slimevr.config.StayAlignedConfig
@@ -24,8 +23,6 @@ import dev.slimevr.util.ann.VRServerThread
 import io.eiren.util.ann.ThreadSafe
 import io.eiren.util.collections.FastList
 import io.eiren.util.logging.LogManager
-import io.github.axisangles.ktmath.EulerAngles
-import io.github.axisangles.ktmath.EulerOrder
 import io.github.axisangles.ktmath.Quaternion
 import io.github.axisangles.ktmath.Quaternion.Companion.I
 import io.github.axisangles.ktmath.Quaternion.Companion.IDENTITY
@@ -36,27 +33,8 @@ import io.github.axisangles.ktmath.Vector3.Companion.NULL
 import io.github.axisangles.ktmath.Vector3.Companion.POS_Y
 import solarxr_protocol.datatypes.BodyPart
 import java.lang.IllegalArgumentException
-import kotlin.math.abs
-import kotlin.math.acos
-import kotlin.math.atan2
-import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.sqrt
 import kotlin.properties.Delegates
-
-// SlimeVR Mod: hip-only back estimate (angles in radians, lengths in meters)
-private const val HIP_ONLY_TILT_START = 0.7f // ~40 deg: pelvis upright
-private const val HIP_ONLY_TILT_END = 1.05f // ~60 deg: lying, not used
-private const val HIP_ONLY_DEADZONE = 0.04f // ignore small height errors
-private const val HIP_ONLY_SMOOTHING = 0.2f
-private const val HIP_ONLY_BLEND_ANGLE = 0.35f // ~20 deg
-private const val HIP_ONLY_HEAD_SHARE = 0.4f // part of the head's turn done by the chest
-private const val HIP_ONLY_MAX_HEAD_TURN = 1.4f // ~80 deg
-private const val HIP_ONLY_MAX_HANDS_TURN = 1.4f // ~80 deg, beyond: hands crossed
-private const val HIP_ONLY_HANDS_MIN_WIDTH = 0.25f // hands closer: ignored
-private const val HIP_ONLY_HANDS_FULL_WIDTH = 0.6f
-private const val HIP_ONLY_HANDS_WEIGHT = 0.5f
-private const val HIP_ONLY_MAX_TWIST = 1.05f // ~60 deg
 
 // SlimeVR Mod: how much the hip joints (and so the knees) follow the pelvis
 private const val PELVIS_TILT_ON_LEGS = 0.5f // part of the pelvis tilt / sway
@@ -236,12 +214,6 @@ class HumanSkeleton(
 	private var hipFromWaistLegsAveraging = 0f
 	private var hipLegsAveraging = 0f
 
-	// SlimeVR Mod: upper body estimated from the HMD height when the only
-	// torso tracker is on the hip (no chest tracker), like a Vive waist tracker
-	private var hipOnlyGroundY: Float? = null
-	private var hipOnlyCalibrate = false
-	private var hipOnlyBend = 0f
-	private var hipOnlyTwist = 0f
 	private var kneeTrackerAnkleAveraging = 0f
 	private var kneeAnkleAveraging = 0f
 
@@ -875,9 +847,6 @@ class HumanSkeleton(
 			hipTrackerBone.setRotation(yawRot)
 		}
 
-		// SlimeVR Mod: hip tracker without chest tracker
-		estimateSpineFromHip()
-
 		// Extended spine model
 		if (extendedSpineModel && hasSpineTracker) {
 			// Tries to guess missing lower spine trackers by interpolating rotations
@@ -1002,129 +971,6 @@ class HumanSkeleton(
 		val tilt = hipYaw.inv() * hipRot
 		val tiltShare = 1f - (1f - PELVIS_TILT_ON_LEGS) * upright
 		return heading * IDENTITY.interpR(tilt, tiltShare)
-	}
-
-	/**
-	 * SlimeVR Mod: with a hip tracker but no chest tracker, the upper body would
-	 * just copy the hip's rotation, so bending over would push the hips
-	 * forward. Instead, how much the back bends is found from the height of the
-	 * HMD: the legs give the height of the hips above the floor, and if the
-	 * neck is lower than a straight back allows, the back is bent forward.
-	 */
-	private fun estimateSpineFromHip() {
-		val hip = hipTracker ?: return
-		if (upperChestTracker != null || chestTracker != null || waistTracker != null) return
-		val head = headTracker ?: return
-		if (!head.hasPosition) return
-		val leftUpper = leftUpperLegTracker ?: return
-		val rightUpper = rightUpperLegTracker ?: return
-
-		val hipRot = hip.getRotation()
-
-		// Only when the pelvis is roughly upright (not lying down)
-		val hipTilt = acos((-hipRot.sandwich(NEG_Y).y).coerceIn(-1f, 1f))
-		val upright = (1f - (hipTilt - HIP_ONLY_TILT_START) / (HIP_ONLY_TILT_END - HIP_ONLY_TILT_START)).coerceIn(0f, 1f)
-		if (upright <= 0f) {
-			hipOnlyBend = 0f
-			hipOnlyTwist = 0f
-			return
-		}
-
-		// Top of the spine (bottom of the neck)
-		val headRot = head.getRotation()
-		val spineTop = head.position +
-			headRot.sandwich(Vector3(0f, -headBone.length, 0f)) +
-			headRot.sandwich(Vector3(0f, -neckBone.length, 0f))
-
-		val upperSpineLength = upperChestBone.length + chestBone.length + waistBone.length
-		if (upperSpineLength < 0.05f) return
-		val pelvisDrop = -hipRot.sandwich(Vector3(0f, -hipBone.length, 0f)).y
-
-		// Height of the hip joints above the ankles, from the lowest leg
-		fun legDrop(upper: Tracker, lower: Tracker?, upperBone: Bone, lowerBone: Bone): Float {
-			val upperRot = upper.getRotation()
-			val lowerRot = lower?.getRotation() ?: upperRot
-			return -upperRot.sandwich(Vector3(0f, -upperBone.length, 0f)).y -
-				lowerRot.sandwich(Vector3(0f, -lowerBone.length, 0f)).y
-		}
-		val legsDrop = max(
-			legDrop(leftUpper, leftLowerLegTracker, leftUpperLegBone, leftLowerLegBone),
-			legDrop(rightUpper, rightLowerLegTracker, rightUpperLegBone, rightLowerLegBone),
-		)
-
-		// After a standing full reset the back is straight: remember the floor
-		if (hipOnlyCalibrate) {
-			hipOnlyGroundY = spineTop.y - upperSpineLength - pelvisDrop - legsDrop
-			hipOnlyCalibrate = false
-		}
-		val groundY = hipOnlyGroundY ?: return
-
-		// Height the upper back has to cover between the neck and the pelvis
-		val upperSpineDrop = spineTop.y - (groundY + legsDrop + pelvisDrop)
-		val ratio = (upperSpineDrop / (upperSpineLength - HIP_ONLY_DEADZONE)).coerceIn(0f, 1f)
-		val targetBend = acos(ratio)
-		hipOnlyBend += (targetBend - hipOnlyBend) * HIP_ONLY_SMOOTHING
-
-		// Bend forward, facing where the hips face
-		val bend = hipOnlyBend
-		val hipYaw = hipRot.project(POS_Y).unit()
-		val spineRot = if (bend >= 0.01f) {
-			val bentRot = hipYaw * EulerAngles(EulerOrder.YZX, -bend, 0f, 0f).toQuaternion()
-			hipRot.interpR(bentRot, (bend / HIP_ONLY_BLEND_ANGLE).coerceIn(0f, 1f) * upright)
-		} else {
-			hipRot
-		}
-
-		// Twist of the chest compared to the hips, from the HMD and controllers
-		val twist = estimateChestTwist(yawAngle(hipYaw), yawAngle(headRot.project(POS_Y).unit())) * upright
-		hipOnlyTwist += (twist - hipOnlyTwist) * HIP_ONLY_SMOOTHING
-		val chestTwist = EulerAngles(EulerOrder.YZX, 0f, hipOnlyTwist, 0f).toQuaternion()
-		val waistTwist = EulerAngles(EulerOrder.YZX, 0f, hipOnlyTwist * 0.5f, 0f).toQuaternion()
-
-		upperChestBone.setRotation(chestTwist * spineRot)
-		chestTrackerBone.setRotation(chestTwist * spineRot)
-		chestBone.setRotation(chestTwist * spineRot)
-		waistBone.setRotation(waistTwist * spineRot)
-	}
-
-	/**
-	 * SlimeVR Mod: how much the chest turns compared to the hips (radians), when
-	 * there is no chest tracker. The chest follows part of the head's turn,
-	 * since people also turn their neck, and when both controllers are tracked
-	 * and held apart, the line between the hands tells where the shoulders face.
-	 */
-	private fun estimateChestTwist(hipYaw: Float, headYaw: Float): Float {
-		val headTurn = wrapAngle(headYaw - hipYaw).coerceIn(-HIP_ONLY_MAX_HEAD_TURN, HIP_ONLY_MAX_HEAD_TURN)
-		var twist = headTurn * HIP_ONLY_HEAD_SHARE
-
-		val left = leftHandTracker
-		val right = rightHandTracker
-		if (left != null && right != null && left.hasPosition && right.hasPosition) {
-			// Left hand to right hand, flat on the floor
-			val across = right.position - left.position
-			val width = sqrt(across.x * across.x + across.z * across.z)
-			// Shoulders face perpendicular to that line
-			val handsTurn = wrapAngle(atan2(-across.z, across.x) - hipYaw)
-			if (abs(handsTurn) < HIP_ONLY_MAX_HANDS_TURN) {
-				val trust = ((width - HIP_ONLY_HANDS_MIN_WIDTH) / (HIP_ONLY_HANDS_FULL_WIDTH - HIP_ONLY_HANDS_MIN_WIDTH))
-					.coerceIn(0f, 1f) * HIP_ONLY_HANDS_WEIGHT
-				twist += (handsTurn - twist) * trust
-			}
-		}
-		return twist.coerceIn(-HIP_ONLY_MAX_TWIST, HIP_ONLY_MAX_TWIST)
-	}
-
-	/** Heading of a yaw rotation, in radians */
-	private fun yawAngle(yaw: Quaternion): Float {
-		val forward = yaw.sandwich(Vector3(0f, 0f, -1f))
-		return atan2(-forward.x, -forward.z)
-	}
-
-	private fun wrapAngle(angle: Float): Float {
-		var a = angle
-		while (a > FastMath.PI) a -= (2f * FastMath.PI)
-		while (a < -FastMath.PI) a += (2f * FastMath.PI)
-		return a
 	}
 
 	/**
@@ -1777,8 +1623,6 @@ class HumanSkeleton(
 		if (!localizer.getEnabled()) {
 			legTweaks.resetFloorLevel()
 		}
-		// SlimeVR Mod: standing straight, recalibrate the hip-only back estimate
-		hipOnlyCalibrate = true
 		legTweaks.resetBuffer()
 		localizer.reset()
 		ikSolver.resetOffsets()

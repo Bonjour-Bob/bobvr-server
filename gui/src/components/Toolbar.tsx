@@ -12,9 +12,7 @@ import { Tooltip } from './commons/Tooltip';
 import { useAtomValue } from 'jotai';
 import { assignedTrackersAtom } from '@/store/app-store';
 import { useBreakpoint } from '@/hooks/breakpoint';
-import { ReactNode, useMemo, useState } from 'react';
-import { HeadCalibrationModal } from './HeadCalibration';
-import { HeadsetIcon } from './commons/icon/HeadsetIcon';
+import { ReactNode, useMemo } from 'react';
 import { ResetButtonIcon } from './home/ResetButton';
 
 const MAINBUTTON_CLASSES = ({ disabled }: { disabled: boolean }) =>
@@ -149,42 +147,6 @@ function BasicResetButton({
   );
 }
 
-// SlimeVR Mod : bouton qui ouvre la calibration automatique de la tete
-function HeadCalibrationButton() {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <Tooltip
-        content={
-          <Typography textAlign="text-center">
-            Pour que le corps ne bouge plus quand tu bouges la tête
-          </Typography>
-        }
-        spacing={5}
-        preferedDirection="top"
-      >
-        <button
-          type="button"
-          className={classNames(
-            MAINBUTTON_CLASSES({ disabled: false }),
-            'rounded-lg',
-            'absolute'
-          )}
-          onClick={() => setOpen(true)}
-        >
-          <HeadsetIcon />
-          <div className="hidden md:block relative leading-tight">
-            <Typography variant="section-title" textAlign="text-center">
-              Tête
-            </Typography>
-          </div>
-        </button>
-      </Tooltip>
-      <HeadCalibrationModal isOpen={open} onClose={() => setOpen(false)} />
-    </>
-  );
-}
-
 export function Toolbar() {
   const assignedTrackers = useAtomValue(assignedTrackersAtom);
 
@@ -233,7 +195,7 @@ export function Toolbar() {
           </div>
           <div
             className="flex-col flex gap-1 min-w-0"
-            style={{ flex: `${3 + visibleGroups} 1 0` }}
+            style={{ flex: `${2 + visibleGroups} 1 0` }}
           >
             <Typography
               variant="section-title"
@@ -243,7 +205,7 @@ export function Toolbar() {
             <div
               className="gap-2 md:h-[72px] h-[62px] w-full md:grid flex"
               style={{
-                gridTemplateColumns: `repeat(calc(3 + ${visibleGroups}), 1fr)`,
+                gridTemplateColumns: `repeat(calc(2 + ${visibleGroups}), 1fr)`,
               }}
             >
               <BasicResetButton
@@ -256,7 +218,6 @@ export function Toolbar() {
                 group={'feet'}
                 customName="toolbar-mounting_calibration-feet"
               />
-              <HeadCalibrationButton />
               {groupVisibility['fingers'] && (
                 <BasicResetButton
                   type={ResetType.Mounting}
