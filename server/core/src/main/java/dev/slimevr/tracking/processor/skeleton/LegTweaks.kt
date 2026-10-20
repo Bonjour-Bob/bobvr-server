@@ -77,6 +77,14 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 
 		// SlimeVR Mod: time for an unlocked foot to glide back (seconds)
 		private const val UNLOCK_BLEND_TIME = 0.15f
+
+		// SlimeVR Mod: foot lock from the foot tracker itself. The foot is
+		// planted when its tracker is still (it doesn't depend on the computed
+		// position, which moves when the hips move)
+		private const val IMU_LOCK_ACCEL = 1.0f // m/s^2, linear acceleration
+		private const val IMU_LOCK_GYRO = 0.6f // rad/s (~35 deg/s)
+		private const val IMU_LOCK_DELAY = 0.06f // s still before locking
+		private const val IMU_LOCK_KNEE_WEIGHT = 0.8f // knee follows the locked foot
 	}
 
 	// state variables
@@ -107,6 +115,17 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 	private var rightToeAngle = 0.0f
 	private var rightToeTouched = false
 	private var localizerMode = false
+
+	// SlimeVR Mod: foot lock from the foot trackers
+	private class ImuFootLock {
+		var locked = false
+		var stillTime = 0f
+		var lockPosition = Vector3.NULL
+		var offset = Vector3.NULL
+		var previousRotation: Quaternion? = null
+	}
+	private val leftImuLock = ImuFootLock()
+	private val rightImuLock = ImuFootLock()
 
 	// config
 	private var config: LegTweaksConfig? = null
@@ -162,6 +181,13 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 
 	fun resetBuffer() {
 		bufferInvalid = true
+		// SlimeVR Mod: forget the foot locks after a reset
+		for (lock in listOf(leftImuLock, rightImuLock)) {
+			lock.locked = false
+			lock.stillTime = 0f
+			lock.offset = Vector3.NULL
+			lock.previousRotation = null
+		}
 	}
 
 	fun setConfig(config: LegTweaksConfig) {
@@ -202,7 +228,14 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		if (floorClipEnabled && !localizerMode) correctClipping()
 
 		// correct for skating if needed (Skating correction)
-		if (skatingCorrectionEnabled) correctSkating()
+		// SlimeVR Mod: with foot trackers, the lock comes from the trackers
+		if (skatingCorrectionEnabled) {
+			if (skeleton.leftFootTracker != null && skeleton.rightFootTracker != null) {
+				lockFeetFromTrackers()
+			} else {
+				correctSkating()
+			}
+		}
 
 		// calculate the correction for the knees
 		if (initialized) solveLowerBody()
@@ -487,6 +520,73 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		if (bufferHead.rightLegState == LegTweaksBuffer.UNLOCKED || rightKneeling) {
 			rightFootPosition = blendUnlockedFoot(rightFootPosition, bufPrev.rightFootPosition, bufPrev.rightFootPositionCorrected)
 		}
+	}
+
+	/**
+	 * SlimeVR Mod: locks each foot in place while its tracker is still, then
+	 * lets it glide back smoothly when it moves. The knee follows the foot
+	 * most of the way so the leg doesn't stretch.
+	 */
+	private fun lockFeetFromTrackers() {
+		val rate = bufferHead.getTimeDelta() // frames per second
+		if (rate <= 0f) return
+		val dt = 1f / rate
+
+		val leftOld = leftFootPosition
+		leftFootPosition = imuLockFoot(
+			leftImuLock,
+			leftFootPosition,
+			leftFootRotation,
+			leftFootAcceleration,
+			dt,
+			isKneeling(leftKneePosition, leftFootPosition),
+		)
+		// Sideways the knee already follows the foot (solveLowerBody), add the height
+		leftKneePosition += Vector3(0f, (leftFootPosition.y - leftOld.y) * IMU_LOCK_KNEE_WEIGHT, 0f)
+
+		val rightOld = rightFootPosition
+		rightFootPosition = imuLockFoot(
+			rightImuLock,
+			rightFootPosition,
+			rightFootRotation,
+			rightFootAcceleration,
+			dt,
+			isKneeling(rightKneePosition, rightFootPosition),
+		)
+		rightKneePosition += Vector3(0f, (rightFootPosition.y - rightOld.y) * IMU_LOCK_KNEE_WEIGHT, 0f)
+	}
+
+	private fun imuLockFoot(
+		state: ImuFootLock,
+		position: Vector3,
+		rotation: Quaternion,
+		acceleration: Vector3,
+		dt: Float,
+		kneeling: Boolean,
+	): Vector3 {
+		// Some firmwares send the acceleration with gravity, some without
+		val accel = acceleration.len().let { if (it > 5f) abs(it - 9.81f) else it }
+		val turnSpeed = state.previousRotation?.let { rotation.angleToR(it) / dt } ?: 0f
+		state.previousRotation = rotation
+
+		val still = !kneeling && accel < IMU_LOCK_ACCEL && turnSpeed < IMU_LOCK_GYRO
+		state.stillTime = if (still) state.stillTime + dt else 0f
+
+		if (state.locked && !still) {
+			state.locked = false
+		} else if (!state.locked && state.stillTime >= IMU_LOCK_DELAY) {
+			// Lock where the foot is shown now, so there is no jump
+			state.locked = true
+			state.lockPosition = position + state.offset
+		}
+
+		val corrected = if (state.locked) {
+			state.lockPosition
+		} else {
+			position + state.offset * exp(-dt / UNLOCK_BLEND_TIME)
+		}
+		state.offset = corrected - position
+		return corrected
 	}
 
 	/**

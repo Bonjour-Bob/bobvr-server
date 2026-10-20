@@ -45,6 +45,11 @@ private const val PELVIS_UPRIGHT_FULL = 0.87f // cos 30 deg: upright, fully used
 // SlimeVR Mod: when sitting, part of the back's tilt is removed so a slightly
 // slouched back doesn't look folded in two
 private const val SITTING_BACK_STRAIGHTEN = 0.6f
+
+// SlimeVR Mod: torso estimate with a hip tracker and no chest tracker (5 trackers)
+private const val HIP_ONLY_CHEST_TILT = 0.3f // part of the pelvis tilt / sway the chest takes
+private const val HIP_ONLY_HEAD_TWIST = 0.4f // part of the head's turn the chest takes
+private const val HIP_ONLY_MAX_TWIST = 1.05f // ~60 deg
 private const val SITTING_THIGH_START = 0.7f // thighs more upright: standing
 private const val SITTING_THIGH_FULL = 0.3f // thighs close to flat: sitting
 private const val SITTING_PELVIS_LYING = 0.5f // pelvis tilted 60 deg or more: lying
@@ -855,6 +860,10 @@ class HumanSkeleton(
 			hipTrackerBone.setRotation(yawRot)
 		}
 
+		// SlimeVR Mod: 5 trackers (hip without chest), the chest no longer
+		// copies the hip, so the hips can move on their own like with 6 trackers
+		estimateChestFromHip()
+
 		// Extended spine model
 		if (extendedSpineModel && hasSpineTracker) {
 			// Tries to guess missing lower spine trackers by interpolating rotations
@@ -944,6 +953,49 @@ class HumanSkeleton(
 		val legsHipRot = legsHipRotation(hipBone.getLocalRotation())
 		leftHipBone.setRotation(legsHipRot)
 		rightHipBone.setRotation(legsHipRot)
+	}
+
+	/**
+	 * SlimeVR Mod: with only a hip tracker, the whole back used to copy the
+	 * pelvis, so swinging or tilting the hips moved the chest too. Now the
+	 * chest stays upright and only takes a small part of the pelvis tilt, and
+	 * turns partly with the head (shoulders follow where you look). The waist
+	 * sits halfway between the two. Turning the chest around the vertical axis
+	 * doesn't move the body, so this doesn't link the head to the body
+	 * position. Lying down (pelvis far from upright), the back follows the
+	 * pelvis like before.
+	 */
+	private fun estimateChestFromHip() {
+		val hip = hipTracker ?: return
+		if (upperChestTracker != null || chestTracker != null || waistTracker != null) return
+
+		val hipRot = hip.getRotation()
+		val pelvisUpright = -hipRot.sandwich(NEG_Y).y
+		val upright = ((pelvisUpright - PELVIS_UPRIGHT_MIN) / (PELVIS_UPRIGHT_FULL - PELVIS_UPRIGHT_MIN)).coerceIn(0f, 1f)
+		if (upright <= 0f) return
+
+		val hipYaw = hipRot.project(POS_Y).unit()
+		var chestYaw = hipYaw
+		headTracker?.let { head ->
+			val headYaw = head.getRotation().project(POS_Y)
+			if (headYaw.lenSq() > 1e-6f) {
+				// Signed turn of the head compared to the hips
+				val turn = (hipYaw.inv() * headYaw.unit()).twinNearest(IDENTITY)
+				val angle = (2f * kotlin.math.atan2(turn.y, turn.w)).coerceIn(-HIP_ONLY_MAX_TWIST / HIP_ONLY_HEAD_TWIST, HIP_ONLY_MAX_TWIST / HIP_ONLY_HEAD_TWIST)
+				chestYaw = hipYaw * Quaternion.rotationAroundYAxis(angle * HIP_ONLY_HEAD_TWIST)
+			}
+		}
+
+		// Tilt and sway of the pelvis, without its heading
+		val tilt = hipYaw.inv() * hipRot
+		val chestShare = 1f - (1f - HIP_ONLY_CHEST_TILT) * upright
+		val chestRot = chestYaw * IDENTITY.interpR(tilt, chestShare)
+		val waistRot = chestRot.interpR(hipRot, 0.5f)
+
+		upperChestBone.setRotation(chestRot)
+		chestTrackerBone.setRotation(chestRot)
+		chestBone.setRotation(chestRot)
+		waistBone.setRotation(waistRot)
 	}
 
 	/**
