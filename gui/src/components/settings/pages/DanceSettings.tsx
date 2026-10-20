@@ -57,13 +57,15 @@ export type DanceForm = {
 // pour eviter les petits blocages quand on tourne les hanches en danse basse.
 // v4 : plus de correction de glissade (les pieds se bloquaient puis se
 // relachaient d'un coup en les levant)
-const DANCE_PRESET_VERSION = '4';
+// v5 : plus de blocage au sol ni de pied a plat (le pied restait accroche au
+// sol puis se liberait d'un coup en le levant)
+const DANCE_PRESET_VERSION = '5';
 const DANCE_PRESET: DanceForm = {
   filtering: { type: FilteringType.PREDICTION.toString(), amount: 0.2 },
   toggles: {
-    floorClip: true,
+    floorClip: false,
     skatingCorrection: false,
-    footPlant: true,
+    footPlant: false,
     toeSnap: false,
     extendedSpine: true,
     extendedPelvis: true,
@@ -554,7 +556,7 @@ export function DanceSettings() {
           name="toggles.floorClip"
           label="Bloquer les pieds au sol"
         />
-        <Advice>activé</Advice>
+        <Advice>désactivé (sinon le pied reste accroché au sol)</Advice>
 
         <Typography variant="section-title">Correction de glissade</Typography>
         <Explain>
@@ -599,7 +601,7 @@ export function DanceSettings() {
           name="toggles.footPlant"
           label="Pied à plat au sol"
         />
-        <Advice>activé</Advice>
+        <Advice>désactivé (sinon le pied se bloque à plat en le levant)</Advice>
 
         <Typography variant="section-title">Estimation des orteils</Typography>
         <Explain>
