@@ -76,12 +76,13 @@ const DANCE_PRESET: DanceForm = {
 // Profil 1:1 : suivre les trackers le plus fidelement possible. Pas de
 // filtrage, pas de genoux etendus (ce qui coupe aussi les corrections du mod
 // sur les hanches, les genoux et le dos), et juste ce qu'il faut pour que les
-// pieds ne glissent pas.
+// pieds ne traversent pas le sol. Pas de correction de glissade : elle bloque
+// les pieds au sol puis les relache d'un coup, ce n'est pas fluide.
 const ONE_TO_ONE_PRESET: DanceForm = {
   filtering: { type: FilteringType.NONE.toString(), amount: 0.1 },
   toggles: {
     floorClip: true,
-    skatingCorrection: true,
+    skatingCorrection: false,
     footPlant: false,
     toeSnap: false,
     extendedSpine: true,
@@ -119,10 +120,15 @@ function readActiveProfile(): ModProfile | null {
 // SlimeVR Mod : le mode 1:1 est devenu les reglages de base. Applique une seule
 // fois (sur ce PC), ensuite l'utilisateur peut tout changer librement.
 const ONE_TO_ONE_DEFAULT_KEY = 'slimevr-mod-1to1-default';
+// v2 : sans correction de glissade
+const ONE_TO_ONE_DEFAULT_VERSION = '2';
 
 function needsOneToOneDefault(): boolean {
   try {
-    return localStorage.getItem(ONE_TO_ONE_DEFAULT_KEY) === null;
+    return (
+      localStorage.getItem(ONE_TO_ONE_DEFAULT_KEY) !==
+      ONE_TO_ONE_DEFAULT_VERSION
+    );
   } catch {
     return false;
   }
@@ -130,7 +136,7 @@ function needsOneToOneDefault(): boolean {
 
 function markOneToOneDefault() {
   try {
-    localStorage.setItem(ONE_TO_ONE_DEFAULT_KEY, '1');
+    localStorage.setItem(ONE_TO_ONE_DEFAULT_KEY, ONE_TO_ONE_DEFAULT_VERSION);
   } catch {
     // ignore
   }
