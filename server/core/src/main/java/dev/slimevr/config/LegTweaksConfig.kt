@@ -1,6 +1,7 @@
 package dev.slimevr.config
 
 class LegTweaksConfig {
-	var correctionStrength = 0.3f
+	// SlimeVR Mod: light skating correction by default (1:1 tracking)
+	var correctionStrength = 0.2f
 	var alwaysUseFloorclip = false
 }

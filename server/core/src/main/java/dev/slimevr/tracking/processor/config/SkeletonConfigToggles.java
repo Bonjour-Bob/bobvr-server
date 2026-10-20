@@ -6,17 +6,19 @@ import java.util.Map;
 
 public enum SkeletonConfigToggles {
 
+	// SlimeVR Mod: defaults set for 1:1 tracking (no extended knee, no foot
+	// plant, no joint limits)
 	EXTENDED_SPINE_MODEL(1, "Extended spine model", "extendedSpine", true),
 	EXTENDED_PELVIS_MODEL(2, "Extended pelvis model", "extendedPelvis", true),
-	EXTENDED_KNEE_MODEL(3, "Extended knee model", "extendedKnee", true),
+	EXTENDED_KNEE_MODEL(3, "Extended knee model", "extendedKnee", false),
 	FORCE_ARMS_FROM_HMD(4, "Force arms from HMD", "forceArmsFromHMD", true),
 	FLOOR_CLIP(5, "Floor clip", "floorClip", true),
 	SKATING_CORRECTION(6, "Skating correction", "skatingCorrection", true),
 	TOE_SNAP(8, "Toe Snap", "toeSnap", false),
-	FOOT_PLANT(9, "Foot Plant", "footPlant", true),
+	FOOT_PLANT(9, "Foot Plant", "footPlant", false),
 	SELF_LOCALIZATION(10, "Self Localization", "selfLocalization", false),
 	USE_POSITION(11, "Use Position", "usePosition", true),
-	ENFORCE_CONSTRAINTS(12, "Enforce Constraints", "enforceConstraints", true),
+	ENFORCE_CONSTRAINTS(12, "Enforce Constraints", "enforceConstraints", false),
 	CORRECT_CONSTRAINTS(13, "Correct Constraints", "correctConstraints", true),;
 
 	public static final SkeletonConfigToggles[] values = values();

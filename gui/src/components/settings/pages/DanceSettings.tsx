@@ -116,6 +116,26 @@ function readActiveProfile(): ModProfile | null {
   }
 }
 
+// SlimeVR Mod : le mode 1:1 est devenu les reglages de base. Applique une seule
+// fois (sur ce PC), ensuite l'utilisateur peut tout changer librement.
+const ONE_TO_ONE_DEFAULT_KEY = 'slimevr-mod-1to1-default';
+
+function needsOneToOneDefault(): boolean {
+  try {
+    return localStorage.getItem(ONE_TO_ONE_DEFAULT_KEY) === null;
+  } catch {
+    return false;
+  }
+}
+
+function markOneToOneDefault() {
+  try {
+    localStorage.setItem(ONE_TO_ONE_DEFAULT_KEY, '1');
+  } catch {
+    // ignore
+  }
+}
+
 function saveActiveProfile(profile: ModProfile) {
   try {
     localStorage.setItem(ACTIVE_PROFILE_KEY, profile);
@@ -276,7 +296,31 @@ export function useModProfiles() {
 
   useRPCPacket(RpcMessage.SettingsResponse, (s: SettingsResponseT) => {
     settingsRef.current = s;
-    const profile = readActiveProfile();
+    let profile = readActiveProfile();
+
+    // First start of this version: the 1:1 settings become the base settings
+    if (needsOneToOneDefault()) {
+      markOneToOneDefault();
+      if (profile === 'dance') {
+        // Dance mode on: 1:1 becomes the settings it goes back to
+        try {
+          localStorage.setItem(BACKUP_KEY, JSON.stringify(ONE_TO_ONE_PRESET));
+        } catch {
+          // ignore
+        }
+      } else {
+        if (profile === 'one-to-one') {
+          clearBackup();
+          profile = null;
+        }
+        sendRPCPacket(
+          RpcMessage.ChangeSettingsRequest,
+          buildDanceRequest(ONE_TO_ONE_PRESET, s)
+        );
+        sendRPCPacket(RpcMessage.SettingsRequest, new SettingsRequestT());
+      }
+    }
+
     setActive(profile);
     // Dance mode turned on with an older preset: switch to the new one
     if (profile === 'dance' && readPresetVersion() !== DANCE_PRESET_VERSION) {
