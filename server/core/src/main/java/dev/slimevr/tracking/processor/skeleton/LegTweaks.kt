@@ -74,6 +74,15 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 
 		// SlimeVR Mod: below this, the shin is lying down (kneeling)
 		private const val KNEELING_SHIN_UPRIGHT = 0.5f
+
+		// SlimeVR Mod: a flat and still foot tracker means the foot is on the
+		// floor, so a computed foot floating up to this height is pulled down
+		private const val GROUND_SNAP_MAX_HEIGHT = 0.15f
+		private const val GROUND_SNAP_FLAT = 0.87f // cos 30 deg
+		private const val GROUND_SNAP_STILL_ACCEL = 1.2f // m/s^2
+		private const val GROUND_SNAP_RELEASE_TIME = 0.25f // s after a move
+		private const val GROUND_SNAP_SMOOTHING = 0.3f
+		private const val GROUND_SNAP_KNEE_SHARE = 0.5f
 	}
 
 	// state variables
@@ -104,6 +113,12 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 	private var rightToeAngle = 0.0f
 	private var rightToeTouched = false
 	private var localizerMode = false
+
+	// SlimeVR Mod: ground snap state for each foot
+	private var leftSnap = 0f
+	private var rightSnap = 0f
+	private var leftSnapBlockedUntil = 0L
+	private var rightSnapBlockedUntil = 0L
 
 	// config
 	private var config: LegTweaksConfig? = null
@@ -200,6 +215,9 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 
 		// correct for skating if needed (Skating correction)
 		if (skatingCorrectionEnabled) correctSkating()
+
+		// SlimeVR Mod: keep a flat, still foot on the floor when the knee bends
+		if (floorClipEnabled && !localizerMode) snapPlantedFeet()
 
 		// calculate the correction for the knees
 		if (initialized) solveLowerBody()
@@ -418,6 +436,47 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 			hipPosition.y + avgOffset / 2 * WAIST_PUSH_WEIGHT,
 			hipPosition.z,
 		)
+	}
+
+	/**
+	 * SlimeVR Mod: when the knee bends with the foot flat on the floor, small
+	 * errors in the leg angles or proportions can make the computed foot float
+	 * above the floor. If the foot tracker says the foot is flat and not
+	 * moving, it really is on the floor, so the foot is pulled back down.
+	 */
+	private fun snapPlantedFeet() {
+		val now = System.currentTimeMillis()
+		skeleton.leftFootTracker?.let {
+			val target = groundSnapTarget(leftFootPosition, leftFootRotation, leftFootAcceleration, now, leftSnapBlockedUntil)
+			if (target < 0f) leftSnapBlockedUntil = now + (GROUND_SNAP_RELEASE_TIME * 1000).toLong()
+			leftSnap += (max(target, 0f) - leftSnap) * GROUND_SNAP_SMOOTHING
+			if (leftSnap > NEARLY_ZERO) {
+				leftFootPosition = Vector3(leftFootPosition.x, leftFootPosition.y - leftSnap, leftFootPosition.z)
+				leftKneePosition = Vector3(leftKneePosition.x, leftKneePosition.y - leftSnap * GROUND_SNAP_KNEE_SHARE, leftKneePosition.z)
+			}
+		}
+		skeleton.rightFootTracker?.let {
+			val target = groundSnapTarget(rightFootPosition, rightFootRotation, rightFootAcceleration, now, rightSnapBlockedUntil)
+			if (target < 0f) rightSnapBlockedUntil = now + (GROUND_SNAP_RELEASE_TIME * 1000).toLong()
+			rightSnap += (max(target, 0f) - rightSnap) * GROUND_SNAP_SMOOTHING
+			if (rightSnap > NEARLY_ZERO) {
+				rightFootPosition = Vector3(rightFootPosition.x, rightFootPosition.y - rightSnap, rightFootPosition.z)
+				rightKneePosition = Vector3(rightKneePosition.x, rightKneePosition.y - rightSnap * GROUND_SNAP_KNEE_SHARE, rightKneePosition.z)
+			}
+		}
+	}
+
+	/**
+	 * SlimeVR Mod: how far down the foot should be pulled, 0 if it shouldn't,
+	 * or -1 if the foot is moving (then snapping pauses for a moment)
+	 */
+	private fun groundSnapTarget(footPosition: Vector3, footRotation: Quaternion, acceleration: Vector3, now: Long, blockedUntil: Long): Float {
+		if (acceleration.len() > GROUND_SNAP_STILL_ACCEL) return -1f
+		if (now < blockedUntil) return 0f
+		if (footRotation.sandwich(Vector3.POS_Y).y < GROUND_SNAP_FLAT) return 0f
+		val height = footPosition.y - floorLevel
+		if (height <= 0f || height > GROUND_SNAP_MAX_HEIGHT) return 0f
+		return height
 	}
 
 	/** SlimeVR Mod: how much a point has to go up to stay above the floor */
