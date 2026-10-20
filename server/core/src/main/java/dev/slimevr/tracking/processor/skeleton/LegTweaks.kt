@@ -74,6 +74,9 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 
 		// SlimeVR Mod: below this, the shin is lying down (kneeling)
 		private const val KNEELING_SHIN_UPRIGHT = 0.5f
+
+		// SlimeVR Mod: time for an unlocked foot to glide back (seconds)
+		private const val UNLOCK_BLEND_TIME = 0.15f
 	}
 
 	// state variables
@@ -444,7 +447,12 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		// y move freely) and set it to be there
 		val bufPrev = bufferHead.parent ?: return
 
-		if (bufferHead.leftLegState == LegTweaksBuffer.LOCKED) {
+		// SlimeVR Mod: no lock on a kneeling leg (knee and foot on the floor),
+		// otherwise the knees open up when sitting on the heels
+		val leftKneeling = isKneeling(leftKneePosition, leftFootPosition)
+		val rightKneeling = isKneeling(rightKneePosition, rightFootPosition)
+
+		if (bufferHead.leftLegState == LegTweaksBuffer.LOCKED && !leftKneeling) {
 			leftFootPosition = Vector3(
 				bufPrev
 					.leftFootPositionCorrected
@@ -455,7 +463,7 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 					.z,
 			)
 		}
-		if (bufferHead.rightLegState == LegTweaksBuffer.LOCKED) {
+		if (bufferHead.rightLegState == LegTweaksBuffer.LOCKED && !rightKneeling) {
 			rightFootPosition = Vector3(
 				bufPrev
 					.rightFootPositionCorrected
@@ -471,12 +479,27 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		// its position for this frame. the amount of displacement is based on
 		// the distance between the last position, the current position, and
 		// the hyperparameters
-		if (bufferHead.leftLegState == LegTweaksBuffer.UNLOCKED) {
-			leftFootPosition = correctUnlockedFootTracker(leftFootPosition, bufPrev.leftFootPosition, bufPrev.leftFootPositionCorrected, bufferHead.leftFootVelocity, leftFramesUnlocked)
+		// SlimeVR Mod: an unlocked foot glides back to its real position over a
+		// short time instead of jumping, so lifting a foot stays smooth
+		if (bufferHead.leftLegState == LegTweaksBuffer.UNLOCKED || leftKneeling) {
+			leftFootPosition = blendUnlockedFoot(leftFootPosition, bufPrev.leftFootPosition, bufPrev.leftFootPositionCorrected)
 		}
-		if (bufferHead.rightLegState == LegTweaksBuffer.UNLOCKED) {
-			rightFootPosition = correctUnlockedFootTracker(rightFootPosition, bufPrev.rightFootPosition, bufPrev.rightFootPositionCorrected, bufferHead.rightFootVelocity, rightFramesUnlocked)
+		if (bufferHead.rightLegState == LegTweaksBuffer.UNLOCKED || rightKneeling) {
+			rightFootPosition = blendUnlockedFoot(rightFootPosition, bufPrev.rightFootPosition, bufPrev.rightFootPositionCorrected)
 		}
+	}
+
+	/**
+	 * SlimeVR Mod: keeps the offset the lock left between the corrected and
+	 * the real foot, and fades it out smoothly (no jump when the foot unlocks)
+	 */
+	private fun blendUnlockedFoot(footPosition: Vector3, previousFootPosition: Vector3, previousFootPositionCorrected: Vector3): Vector3 {
+		val rate = bufferHead.getTimeDelta() // frames per second
+		val dt = if (rate > 0f) 1f / rate else 0f
+		val keep = exp(-dt / UNLOCK_BLEND_TIME)
+		val offsetX = (previousFootPositionCorrected.x - previousFootPosition.x) * keep
+		val offsetZ = (previousFootPositionCorrected.z - previousFootPosition.z) * keep
+		return Vector3(footPosition.x + offsetX, footPosition.y, footPosition.z + offsetZ)
 	}
 
 	private fun correctUnlockedFootTracker(footPosition: Vector3, previousFootPosition: Vector3, previousFootPositionCorrected: Vector3, footVelocity: Vector3, framesUnlocked: Int): Vector3 {
@@ -829,10 +852,13 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		val rightXDif = rightFootPosition.x - bufferHead.rightFootPosition.x
 		val leftZDif = leftFootPosition.z - bufferHead.leftFootPosition.z
 		val rightZDif = rightFootPosition.z - bufferHead.rightFootPosition.z
-		val leftX = leftKneePosition.x + leftXDif * KNEE_LATERAL_WEIGHT
-		val leftZ = leftKneePosition.z + leftZDif * KNEE_LATERAL_WEIGHT
-		val rightX = rightKneePosition.x + rightXDif * KNEE_LATERAL_WEIGHT
-		val rightZ = rightKneePosition.z + rightZDif * KNEE_LATERAL_WEIGHT
+		// SlimeVR Mod: a kneeling knee is on the floor, don't drag it with the foot
+		val leftKneeWeight = if (isKneeling(leftKneePosition, leftFootPosition)) 0f else KNEE_LATERAL_WEIGHT
+		val rightKneeWeight = if (isKneeling(rightKneePosition, rightFootPosition)) 0f else KNEE_LATERAL_WEIGHT
+		val leftX = leftKneePosition.x + leftXDif * leftKneeWeight
+		val leftZ = leftKneePosition.z + leftZDif * leftKneeWeight
+		val rightX = rightKneePosition.x + rightXDif * rightKneeWeight
+		val rightZ = rightKneePosition.z + rightZDif * rightKneeWeight
 		leftKneePosition = Vector3(leftX, leftKneePosition.y, leftZ)
 		rightKneePosition = Vector3(rightX, rightKneePosition.y, rightZ)
 

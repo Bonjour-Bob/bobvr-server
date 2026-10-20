@@ -13,7 +13,7 @@ public enum SkeletonConfigToggles {
 	EXTENDED_KNEE_MODEL(3, "Extended knee model", "extendedKnee", false),
 	FORCE_ARMS_FROM_HMD(4, "Force arms from HMD", "forceArmsFromHMD", true),
 	FLOOR_CLIP(5, "Floor clip", "floorClip", false),
-	SKATING_CORRECTION(6, "Skating correction", "skatingCorrection", false),
+	SKATING_CORRECTION(6, "Skating correction", "skatingCorrection", true),
 	TOE_SNAP(8, "Toe Snap", "toeSnap", false),
 	FOOT_PLANT(9, "Foot Plant", "footPlant", false),
 	SELF_LOCALIZATION(10, "Self Localization", "selfLocalization", false),

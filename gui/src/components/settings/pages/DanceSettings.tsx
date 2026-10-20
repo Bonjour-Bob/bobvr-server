@@ -59,12 +59,13 @@ export type DanceForm = {
 // relachaient d'un coup en les levant)
 // v5 : plus de blocage au sol ni de pied a plat (le pied restait accroche au
 // sol puis se liberait d'un coup en le levant)
-const DANCE_PRESET_VERSION = '5';
+// v6 : correction de glissade revenue, relachement des pieds en douceur
+const DANCE_PRESET_VERSION = '6';
 const DANCE_PRESET: DanceForm = {
   filtering: { type: FilteringType.PREDICTION.toString(), amount: 0.2 },
   toggles: {
     floorClip: false,
-    skatingCorrection: false,
+    skatingCorrection: true,
     footPlant: false,
     toeSnap: false,
     extendedSpine: true,
@@ -86,7 +87,7 @@ const ONE_TO_ONE_PRESET: DanceForm = {
   filtering: { type: FilteringType.PREDICTION.toString(), amount: 0.2 },
   toggles: {
     floorClip: false,
-    skatingCorrection: false,
+    skatingCorrection: true,
     footPlant: false,
     toeSnap: false,
     extendedSpine: true,
@@ -94,7 +95,7 @@ const ONE_TO_ONE_PRESET: DanceForm = {
     extendedKnee: false,
     enforceConstraints: false,
   },
-  legTweaks: { correctionStrength: 0.2 },
+  legTweaks: { correctionStrength: 0.3 },
   drift: { enabled: false, prediction: false, amount: 0.8, maxResets: 6 },
   resets: { yawResetSmoothTime: 0.2 },
 };
@@ -128,7 +129,8 @@ const ONE_TO_ONE_DEFAULT_KEY = 'slimevr-mod-1to1-default';
 // v3 : prediction 20 % (sans filtrage c'etait saccade)
 // v4 : sans blocage au sol (il retenait le pied quand on leve la jambe)
 // v5 : recentrage par double tap en douceur (0,2 s) comme en mode danse
-const ONE_TO_ONE_DEFAULT_VERSION = '5';
+// v6 : correction de glissade revenue (30 %), relachement des pieds en douceur
+const ONE_TO_ONE_DEFAULT_VERSION = '6';
 
 function needsOneToOneDefault(): boolean {
   try {
@@ -585,9 +587,7 @@ export function DanceSettings() {
             />
           </div>
         )}
-        <Advice>
-          désactivé (sinon les pieds se bloquent puis se relâchent d’un coup)
-        </Advice>
+        <Advice>activé, force 30 %</Advice>
 
         <Typography variant="section-title">Pied à plat</Typography>
         <Explain>

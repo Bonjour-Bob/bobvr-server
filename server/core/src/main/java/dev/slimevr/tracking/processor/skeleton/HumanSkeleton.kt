@@ -988,8 +988,6 @@ class HumanSkeleton(
 	 * their heading sits between the pelvis and the thighs.
 	 */
 	private fun legsHipRotation(hipRot: Quaternion): Quaternion {
-		// Off with "Genoux etendus" off (mode 1:1): follow the trackers exactly
-		if (!extendedKneeModel) return hipRot
 		val left = leftUpperLegTracker ?: return hipRot
 		val right = rightUpperLegTracker ?: return hipRot
 
