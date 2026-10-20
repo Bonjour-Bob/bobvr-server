@@ -70,14 +70,11 @@ export const ASSIGNMENT_MODES: Record<AssignMode, BodyPart[]> = {
     BodyPart.LEFT_FOOT,
     BodyPart.RIGHT_FOOT,
   ],
-  // x8 SlimeVR Mod : sans tibias, avec les pieds et les coudes
+  // x8 SlimeVR Mod : sans pieds, avec les chevilles et les coudes
   [AssignMode.FeetElbows]: [
     BodyPart.CHEST,
     BodyPart.HIP,
-    BodyPart.LEFT_UPPER_LEG,
-    BodyPart.RIGHT_UPPER_LEG,
-    BodyPart.LEFT_FOOT,
-    BodyPart.RIGHT_FOOT,
+    ...LEGS_PARTS,
     BodyPart.LEFT_UPPER_ARM,
     BodyPart.RIGHT_UPPER_ARM,
   ],
