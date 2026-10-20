@@ -23,4 +23,14 @@
   nsExec::ExecToLog '"$INSTDIR\jre\bin\java.exe" -jar "$INSTDIR\slimevr.jar" --install'
   Pop $0
   DetailPrint "Pilote SteamVR : code $0"
+
+  ; Appli SteamVR : permet de lancer SlimeVR Mod au demarrage de SteamVR
+  DetailPrint "Enregistrement de SlimeVR Mod dans SteamVR..."
+  nsExec::ExecToLog `powershell -NoProfile -ExecutionPolicy Bypass -File "$INSTDIR\steamvr-autostart.ps1" -Exe "$INSTDIR\SlimeVR Mod.exe" -ManifestDir "$INSTDIR"`
+  Pop $0
+!macroend
+
+!macro customUnInstall
+  nsExec::ExecToLog `powershell -NoProfile -ExecutionPolicy Bypass -File "$INSTDIR\steamvr-autostart.ps1" -ManifestDir "$INSTDIR" -Remove`
+  Pop $0
 !macroend

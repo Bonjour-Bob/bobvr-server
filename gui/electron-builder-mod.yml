@@ -35,6 +35,9 @@ win:
     # Java embarque, pour ne rien avoir a installer sur l'autre PC
     - from: "./build-mod/jre"
       to: "jre"
+    # Script qui enregistre SlimeVR Mod comme appli SteamVR (lancement auto)
+    - from: "./electron/resources/steamvr-autostart.ps1"
+      to: "steamvr-autostart.ps1"
     # Pilote SteamVR, enregistre aupres de SteamVR a l'installation
     - from: "./build-mod/slimevr-openvr-driver-win64"
       to: "slimevr-openvr-driver-win64"
