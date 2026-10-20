@@ -26,6 +26,7 @@ import { useAtomValue } from 'jotai';
 import { connectedIMUTrackersAtom } from '@/store/app-store';
 import { useElectron } from '@/hooks/electron';
 import { openUrl } from '@/hooks/crossplatform';
+import { MOD_VERSION } from '@/mod-version';
 
 export function VersionTag() {
   return (
@@ -40,7 +41,7 @@ export function VersionTag() {
       }
     >
       {/* SlimeVR Mod : nom du mod a la place du numero de version */}
-      BOBvr-Beta v0.3 by Bonjour-
+      BOBvr-Beta v{MOD_VERSION} by Bonjour-
     </div>
   );
 }
