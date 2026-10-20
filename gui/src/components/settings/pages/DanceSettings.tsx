@@ -96,7 +96,7 @@ const ONE_TO_ONE_PRESET: DanceForm = {
   },
   legTweaks: { correctionStrength: 0.2 },
   drift: { enabled: false, prediction: false, amount: 0.8, maxResets: 6 },
-  resets: { yawResetSmoothTime: 0 },
+  resets: { yawResetSmoothTime: 0.2 },
 };
 
 export type ModProfile = 'dance' | 'one-to-one';
@@ -127,7 +127,8 @@ const ONE_TO_ONE_DEFAULT_KEY = 'slimevr-mod-1to1-default';
 // v2 : sans correction de glissade
 // v3 : prediction 20 % (sans filtrage c'etait saccade)
 // v4 : sans blocage au sol (il retenait le pied quand on leve la jambe)
-const ONE_TO_ONE_DEFAULT_VERSION = '4';
+// v5 : recentrage par double tap en douceur (0,2 s) comme en mode danse
+const ONE_TO_ONE_DEFAULT_VERSION = '5';
 
 function needsOneToOneDefault(): boolean {
   try {

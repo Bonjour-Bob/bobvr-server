@@ -56,7 +56,8 @@ class ResetsConfig {
 	var mode = ArmsResetModes.BACK
 
 	// Yaw reset smoothing time in seconds
-	var yawResetSmoothTime = 0.0f
+	// SlimeVR Mod: smooth yaw reset (double tap) by default
+	var yawResetSmoothTime = 0.2f
 
 	// Save automatic mounting reset calibration
 	var saveMountingReset = false
