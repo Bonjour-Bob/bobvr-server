@@ -20,6 +20,9 @@ export const MOD_CHANGELOG: ModChangelogEntry[] = [
       'Mode normal : recentrage en douceur au double tap, comme en mode danse.',
       'Mode normal : lissage léger, plier le genou et lever la jambe est moins brusque.',
       'Au premier démarrage de cette version, l’app repasse en mode normal avec les nouveaux réglages.',
+      'Correctif : quand un capteur se reconnectait, l’app pouvait sauvegarder des réglages incomplets, et en quittant le mode Origine ou Danse tout se retrouvait coupé (plus de double tap en douceur, plus de genoux étendus, prédiction au lieu du lissage). Les bons réglages du mode normal sont remis une fois.',
+      'Allongé dans le lit, à moitié allongé ou accroupi bas : les pieds ne sont plus jamais bloqués au sol, donc les hanches et les jambes ne se tordent plus.',
+      'Debout en pliant les genoux : relâchement des pieds plus doux (0,25 s au lieu de 0,15 s), sans blocage puis à-coup.',
     ],
   },
   {

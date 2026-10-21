@@ -157,7 +157,9 @@ const ONE_TO_ONE_DEFAULT_KEY = 'slimevr-mod-1to1-default';
 // v8 : lissage leger au lieu de la prediction (jambes moins brusques), et
 // retour au mode normal (les anciens reglages sauvegardes n'avaient ni les
 // genoux etendus ni le double tap en douceur)
-const ONE_TO_ONE_DEFAULT_VERSION = '8';
+// v9 : remet ces reglages, perdus a cause d'une sauvegarde faite avec des
+// reglages incomplets (tout coupe, prediction, double tap sec)
+const ONE_TO_ONE_DEFAULT_VERSION = '9';
 
 function needsOneToOneDefault(): boolean {
   try {
@@ -201,6 +203,13 @@ function savePresetVersion() {
   } catch {
     // ignore
   }
+}
+
+// The server also sends partial settings (only the SteamVR part, when a
+// tracker connects or disconnects). Those must never be used as the current
+// settings: every other value would read as off or zero.
+function isFullSettings(s: SettingsResponseT): boolean {
+  return !!s.filtering && !!s.modelSettings?.toggles && !!s.resetsSettings;
 }
 
 const percent = (value: number) => `${Math.round(value * 100)} %`;
@@ -338,6 +347,7 @@ export function useModProfiles() {
   }, []);
 
   useRPCPacket(RpcMessage.SettingsResponse, (s: SettingsResponseT) => {
+    if (!isFullSettings(s)) return;
     settingsRef.current = s;
     let profile = readActiveProfile();
 
@@ -436,6 +446,7 @@ export function DanceSettings() {
   }, []);
 
   useRPCPacket(RpcMessage.SettingsResponse, (s: SettingsResponseT) => {
+    if (!isFullSettings(s)) return;
     settingsRef.current = s;
     setSettings(s);
     reset(formFromSettings(s));

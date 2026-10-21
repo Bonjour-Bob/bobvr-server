@@ -76,7 +76,10 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		private const val KNEELING_SHIN_UPRIGHT = 0.5f
 
 		// SlimeVR Mod: time for an unlocked foot to glide back (seconds)
-		private const val UNLOCK_BLEND_TIME = 0.15f
+		private const val UNLOCK_BLEND_TIME = 0.25f
+
+		// SlimeVR Mod: pelvis more tilted than ~60 deg: lying, feet never held
+		private const val PELVIS_UPRIGHT_FOR_LOCK = 0.5f
 
 		// SlimeVR Mod: foot lock from the foot tracker itself. The foot is
 		// planted when its tracker is still (it doesn't depend on the computed
@@ -482,8 +485,10 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 
 		// SlimeVR Mod: no lock on a kneeling leg (knee and foot on the floor),
 		// otherwise the knees open up when sitting on the heels
-		val leftKneeling = skeleton.modCorrections && isKneeling(leftKneePosition, leftFootPosition)
-		val rightKneeling = skeleton.modCorrections && isKneeling(rightKneePosition, rightFootPosition)
+		// Same when lying or half lying (in bed): the feet are never held
+		val lying = skeleton.modCorrections && !isPelvisUpright()
+		val leftKneeling = lying || (skeleton.modCorrections && isKneeling(leftKneePosition, leftFootPosition))
+		val rightKneeling = lying || (skeleton.modCorrections && isKneeling(rightKneePosition, rightFootPosition))
 
 		if (bufferHead.leftLegState == LegTweaksBuffer.LOCKED && !leftKneeling) {
 			leftFootPosition = Vector3(
@@ -535,12 +540,14 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 	/**
 	 * SlimeVR Mod: locks each foot in place while its tracker is still, then
 	 * lets it glide back smoothly when it moves. The knee follows the foot
-	 * most of the way so the leg doesn't stretch.
+	 * most of the way so the leg doesn't stretch. Only when standing: lying in
+	 * bed, sitting or crouching low the feet are never held.
 	 */
 	private fun lockFeetFromTrackers() {
 		val rate = bufferHead.getTimeDelta() // frames per second
 		if (rate <= 0f) return
 		val dt = 1f / rate
+		val holdFeet = active && isPelvisUpright()
 
 		val leftOld = leftFootPosition
 		leftFootPosition = imuLockFoot(
@@ -549,7 +556,7 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 			leftFootRotation,
 			leftFootAcceleration,
 			dt,
-			isKneeling(leftKneePosition, leftFootPosition),
+			isKneeling(leftKneePosition, leftFootPosition) || !holdFeet,
 		)
 		// Sideways the knee already follows the foot (solveLowerBody), add the height
 		leftKneePosition += Vector3(0f, (leftFootPosition.y - leftOld.y) * IMU_LOCK_KNEE_WEIGHT, 0f)
@@ -561,9 +568,20 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 			rightFootRotation,
 			rightFootAcceleration,
 			dt,
-			isKneeling(rightKneePosition, rightFootPosition),
+			isKneeling(rightKneePosition, rightFootPosition) || !holdFeet,
 		)
 		rightKneePosition += Vector3(0f, (rightFootPosition.y - rightOld.y) * IMU_LOCK_KNEE_WEIGHT, 0f)
+	}
+
+	/**
+	 * SlimeVR Mod: pelvis tilted less than ~60 deg (standing, walking,
+	 * crouching). Lying in bed the hips are high enough to look "standing" to
+	 * the height check, so the pelvis angle is checked too.
+	 */
+	private fun isPelvisUpright(): Boolean {
+		val hip = skeleton.hipBone
+		val rot = hip.getLocalRotation() * hip.rotationOffset.inv()
+		return -rot.sandwich(Vector3.NEG_Y).y > PELVIS_UPRIGHT_FOR_LOCK
 	}
 
 	private fun imuLockFoot(
