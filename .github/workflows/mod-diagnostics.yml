@@ -12,7 +12,7 @@ jobs:
     name: Server compile + spotless
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - uses: actions/setup-java@v5
@@ -42,7 +42,7 @@ jobs:
     name: GUI lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - uses: pnpm/action-setup@v6
