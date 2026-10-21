@@ -33,11 +33,14 @@ jobs:
         shell: bash
         run: |
           set +e
-          # Kotlin only: the Java formatter download (Eclipse P2) fails from time to time
-          ./gradlew :server:spotlessKotlinCheck --console=plain > spotless.log 2>&1
-          code=$?
-          grep -E -A40 'What went wrong|violations' spotless.log | head -80 | while IFS= read -r line; do echo "::warning::${line}"; done
-          exit $code
+          # Kotlin only (the Java formatter download is flaky). Apply the
+          # formatting and show what it changed: the user's build applies it
+          # anyway, so this only reports (an upstream file can't be fixed by it).
+          ./gradlew :server:spotlessKotlinApply --console=plain > spotless.log 2>&1
+          grep -E 'not able to resolve' spotless.log | while IFS= read -r line; do echo "::notice::${line}"; done
+          git diff --stat | while IFS= read -r line; do echo "::warning::${line}"; done
+          git diff -U0 | grep -E '^[-+@]' | grep -v '^+++\|^---' | head -60 | while IFS= read -r line; do echo "::warning::${line}"; done
+          git diff --quiet
 
   gui:
     name: GUI lint
