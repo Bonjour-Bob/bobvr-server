@@ -33,9 +33,10 @@ jobs:
         shell: bash
         run: |
           set +e
-          ./gradlew spotlessCheck --console=plain > spotless.log 2>&1
+          # Kotlin only: the Java formatter download (Eclipse P2) fails from time to time
+          ./gradlew :server:core:spotlessKotlinCheck :server:desktop:spotlessKotlinCheck --console=plain > spotless.log 2>&1
           code=$?
-          grep -A40 'What went wrong' spotless.log | head -60 | while IFS= read -r line; do echo "::warning::${line}"; done
+          grep -E -A40 'What went wrong|violations' spotless.log | head -80 | while IFS= read -r line; do echo "::warning::${line}"; done
           exit $code
 
   gui:
