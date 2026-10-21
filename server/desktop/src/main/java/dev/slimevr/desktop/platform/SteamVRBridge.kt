@@ -186,7 +186,7 @@ abstract class SteamVRBridge(
 		for ((role, trackers) in roleToTrackers) {
 			val stillAssigned = (roleToPositions[role] ?: emptySet()).any { it in assignedPositions } &&
 				!(role == TrackerRole.WAIST && steamVRWaist)
-			val shouldShare = stillAssigned || if (role == TrackerRole.WAIST) {
+			val usedBySkeleton = if (role == TrackerRole.WAIST) {
 				// Waist is special, it should be enabled if there is any tracker on the spine,
 				// but ignored if the waist or hip tracker is from us
 				skeleton.hasSpineTracker &&
@@ -198,6 +198,7 @@ abstract class SteamVRBridge(
 					it != null && it.device?.origin != DeviceOrigin.STEAMVR
 				}
 			}
+			val shouldShare = stillAssigned || usedBySkeleton
 			changeShareSettings(role, shouldShare)
 		}
 		return true
