@@ -44,6 +44,7 @@ export function PreviewControls({ open }: { open: boolean }) {
   const { paused, toggle: toggleTracking } = usePauseTracking();
   const { active: profile, toggle: toggleProfile } = useModProfiles();
   const danceMode = profile === 'dance';
+  const originMode = profile === 'origin';
 
   const { cmFormat } = useMemo(() => {
     const cmFormat = Intl.NumberFormat(currentLocales, {
@@ -154,6 +155,28 @@ export function PreviewControls({ open }: { open: boolean }) {
               onClick={() => toggleProfile('dance')}
             >
               <DanceIcon width={20} />
+            </div>
+          </Tooltip>
+          {/* SlimeVR Mod : mode Origine, tout comme SlimeVR de base */}
+          <Tooltip
+            content={
+              <Typography variant="section-title">
+                {originMode
+                  ? 'Mode Origine activé : comme SlimeVR de base (clique pour revenir à tes réglages)'
+                  : 'Mode Origine : remettre tout comme SlimeVR de base'}
+              </Typography>
+            }
+            preferedDirection="top"
+          >
+            <div
+              className={classNames(
+                'flex justify-center items-center w-10 h-10 rounded-full hover:bg-background-60 cursor-pointer text-standard-bold',
+                { 'bg-background-60 text-background-10': originMode },
+                { 'text-background-30': !originMode }
+              )}
+              onClick={() => toggleProfile('origin')}
+            >
+              OG
             </div>
           </Tooltip>
         </div>

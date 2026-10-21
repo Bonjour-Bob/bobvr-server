@@ -34,6 +34,7 @@ import { VMCSettings } from './components/settings/pages/VMCSettings';
 import { MountingChoose } from './components/onboarding/pages/mounting/MountingChoose';
 import { VersionUpdateModal } from './components/VersionUpdateModal';
 import { ModUpdateAlert } from './components/ModUpdateAlert';
+import { ModDefaults } from './components/ModDefaults';
 import semver from 'semver';
 import { useBreakpoint } from './hooks/breakpoint';
 import { VRModePage } from './components/vr-mode/VRModePage';
@@ -82,6 +83,7 @@ function Layout() {
       <SerialDetectionModal />
       <VersionUpdateModal />
       <ModUpdateAlert />
+      <ModDefaults />
       <UnknownDeviceModal />
       <UdevRulesModal />
       <SentryRoutes>

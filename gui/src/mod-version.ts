@@ -2,7 +2,7 @@
 // Grosse mise a jour : +0.1 (0.7 -> 0.8), major: true.
 // Petite mise a jour (correctif, petit reglage) : +0.0.1 (0.7 -> 0.7.1).
 // Ajouter les nouveautes en haut de MOD_CHANGELOG a chaque fois.
-export const MOD_VERSION = '0.8';
+export const MOD_VERSION = '0.9';
 
 export type ModChangelogEntry = {
   version: string;
@@ -11,6 +11,16 @@ export type ModChangelogEntry = {
 };
 
 export const MOD_CHANGELOG: ModChangelogEntry[] = [
+  {
+    version: '0.9',
+    major: true,
+    changes: [
+      'Mode 5 capteurs : torse virtuel. Les hanches sont placées à partir des jambes posées au sol et le dos se plie pour rejoindre le casque, donc les hanches bougent séparément du torse comme avec 6 capteurs.',
+      'Mode normal : genoux étendus comme en mode danse (jambes plus naturelles).',
+      'Nouveau bouton « OG » à côté du mode danse : mode Origine, tout comme SlimeVR de base (réglages officiels, corrections du mod coupées).',
+      'Thème noir et blanc par défaut.',
+    ],
+  },
   {
     version: '0.8',
     major: true,

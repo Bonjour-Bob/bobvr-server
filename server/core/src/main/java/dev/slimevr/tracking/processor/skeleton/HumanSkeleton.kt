@@ -53,6 +53,16 @@ private const val HIP_ONLY_CHEST_TILT = 0.3f // part of the pelvis tilt / sway t
 private const val HIP_ONLY_HEAD_TWIST = 0.4f // part of the head's turn the chest takes
 private const val HIP_ONLY_MAX_TWIST = 1.05f // ~60 deg
 
+// SlimeVR Mod: virtual torso tracker (5 trackers)
+private const val VIRTUAL_TORSO_STILL_SPEED = 0.8f // rad/s: leg turning slower than this is planted
+private const val VIRTUAL_TORSO_FLOOR_MARGIN = 0.08f // m above the lowest ankle
+private const val VIRTUAL_TORSO_RATIO_MIN = 0.7f
+private const val VIRTUAL_TORSO_RATIO_OK_MIN = 0.85f
+private const val VIRTUAL_TORSO_RATIO_OK_MAX = 1.1f
+private const val VIRTUAL_TORSO_RATIO_MAX = 1.3f
+private const val VIRTUAL_TORSO_CHEST_SHARE = 0.6f // upper back bends less than the lower back
+private const val VIRTUAL_TORSO_SMOOTHING = 0.35f
+
 // SlimeVR Mod: shin estimate without shin trackers
 private const val SHIN_LIFT_MARGIN = 0.2f // knee higher than shin + 20%: foot lifted
 private const val SHIN_FLAT_MIN = 0.7f // foot tilted more than ~45 deg: follow the foot
@@ -225,6 +235,15 @@ class HumanSkeleton(
 	private var forceArmsFromHMD = true
 	private var enforceConstraints = true
 	private var correctConstraints = true
+
+	/**
+	 * SlimeVR Mod: the mod's body corrections are on. Turned off by the
+	 * "Origine" profile to get exactly the official SlimeVR behavior. It uses
+	 * the "correct constraints" toggle, which the official server doesn't use
+	 * at the moment (see updatePose) and which has no switch in the GUI.
+	 */
+	val modCorrections: Boolean
+		get() = correctConstraints
 
 	// Ratios
 	private var waistFromChestHipAveraging = 0f
@@ -1030,6 +1049,7 @@ class HumanSkeleton(
 	 * pelvis like before.
 	 */
 	private fun estimateChestFromHip() {
+		if (!modCorrections) return
 		val hip = hipTracker ?: return
 		if (upperChestTracker != null || chestTracker != null || waistTracker != null) return
 
@@ -1053,13 +1073,132 @@ class HumanSkeleton(
 		// Tilt and sway of the pelvis, without its heading
 		val tilt = hipYaw.inv() * hipRot
 		val chestShare = 1f - (1f - HIP_ONLY_CHEST_TILT) * upright
-		val chestRot = chestYaw * IDENTITY.interpR(tilt, chestShare)
-		val waistRot = chestRot.interpR(hipRot, 0.5f)
+		var chestRot = chestYaw * IDENTITY.interpR(tilt, chestShare)
+		var waistRot = chestRot.interpR(hipRot, 0.5f)
+
+		// Virtual torso tracker: place the hips from the legs planted on the
+		// floor, and bend the back so it joins the headset. The hips can then
+		// move on their own (sway, thrust, circles) while the feet stay put,
+		// like with a real chest tracker.
+		val aim = virtualTorsoAim(hipRot, chestYaw)
+		if (aim != null) {
+			val (aimRot, weight) = aim
+			val w = weight * upright
+			chestRot = chestRot.interpR(aimRot, w * VIRTUAL_TORSO_CHEST_SHARE)
+			waistRot = waistRot.interpR(aimRot, w)
+		}
 
 		upperChestBone.setRotation(chestRot)
 		chestTrackerBone.setRotation(chestRot)
 		chestBone.setRotation(chestRot)
 		waistBone.setRotation(waistRot)
+	}
+
+	// SlimeVR Mod: virtual torso state (5 trackers)
+	private class LegAnchor {
+		var anchor: Vector3? = null
+		var previousThigh: Quaternion? = null
+		var previousShin: Quaternion? = null
+	}
+	private val leftLegAnchor = LegAnchor()
+	private val rightLegAnchor = LegAnchor()
+	private var virtualTorsoTime = 0L
+	private var virtualTorsoAimSmoothed: Quaternion? = null
+
+	/**
+	 * SlimeVR Mod: where the back should point (from the base of the neck down
+	 * to the pelvis) so the pelvis lands where the planted legs put it, and how
+	 * much to trust it. Null when no foot is planted (jumping, walking fast).
+	 */
+	private fun virtualTorsoAim(hipRot: Quaternion, chestYaw: Quaternion): Pair<Quaternion, Float>? {
+		val head = headTracker ?: return null
+		if (!head.hasPosition) return null
+		val leftThigh = leftUpperLegTracker ?: return null
+		val rightThigh = rightUpperLegTracker ?: return null
+		val leftShin = leftLowerLegTracker ?: return null
+		val rightShin = rightLowerLegTracker ?: return null
+
+		val now = System.nanoTime()
+		val dt = if (virtualTorsoTime == 0L) 0f else ((now - virtualTorsoTime) / 1e9f).coerceIn(0f, 0.2f)
+		virtualTorsoTime = now
+		if (dt <= 0f) return null
+
+		// Ankles of the last frame
+		val leftAnkle = leftLowerLegBone.getTailPosition()
+		val rightAnkle = rightLowerLegBone.getTailPosition()
+		val lowest = min(leftAnkle.y, rightAnkle.y)
+
+		fun pelvisFromLeg(
+			state: LegAnchor,
+			thigh: Tracker,
+			shin: Tracker,
+			ankle: Vector3,
+			hipSide: Bone,
+			upperLeg: Bone,
+			lowerLeg: Bone,
+		): Vector3? {
+			val thighRot = thigh.getRotation()
+			val shinRot = shin.getRotation()
+			val speed = max(
+				state.previousThigh?.let { thighRot.angleToR(it) / dt } ?: 0f,
+				state.previousShin?.let { shinRot.angleToR(it) / dt } ?: 0f,
+			)
+			state.previousThigh = thighRot
+			state.previousShin = shinRot
+
+			// A planted leg doesn't turn and its ankle is the lowest one
+			val planted = speed < VIRTUAL_TORSO_STILL_SPEED && ankle.y < lowest + VIRTUAL_TORSO_FLOOR_MARGIN
+			val anchor = state.anchor
+			if (!planted || anchor == null) {
+				state.anchor = ankle
+				return null
+			}
+			// Hip joint above the planted ankle, then the middle of the pelvis
+			val legVector = thighRot.sandwich(Vector3(0f, -upperLeg.length, 0f)) +
+				shinRot.sandwich(Vector3(0f, -lowerLeg.length, 0f))
+			val side = hipSide.getTailPosition() - hipSide.getPosition()
+			return anchor - legVector - side
+		}
+
+		val fromLeft = pelvisFromLeg(leftLegAnchor, leftThigh, leftShin, leftAnkle, leftHipBone, leftUpperLegBone, leftLowerLegBone)
+		val fromRight = pelvisFromLeg(rightLegAnchor, rightThigh, rightShin, rightAnkle, rightHipBone, rightUpperLegBone, rightLowerLegBone)
+		val pelvis = when {
+			fromLeft != null && fromRight != null -> (fromLeft + fromRight) * 0.5f
+			fromLeft != null -> fromLeft
+			fromRight != null -> fromRight
+			else -> {
+				virtualTorsoAimSmoothed = null
+				return null
+			}
+		}
+
+		// Bottom of the back (top of the pelvis) and base of the neck
+		val backBottom = pelvis - hipRot.sandwich(Vector3(0f, -hipBone.length, 0f))
+		val headRot = head.getRotation()
+		val neckBase = head.position +
+			headRot.sandwich(Vector3(0f, 0f, headBone.length)) +
+			headRot.sandwich(Vector3(0f, -neckBone.length, 0f))
+		val back = backBottom - neckBase
+		val backLength = upperChestBone.length + chestBone.length + waistBone.length
+		if (backLength < 0.05f || back.lenSq() < 1e-6f) return null
+
+		// Trust it only when the distance makes sense (not mid-jump)
+		val ratio = back.len() / backLength
+		val weight = when {
+			ratio < VIRTUAL_TORSO_RATIO_MIN -> 0f
+			ratio < VIRTUAL_TORSO_RATIO_OK_MIN -> (ratio - VIRTUAL_TORSO_RATIO_MIN) / (VIRTUAL_TORSO_RATIO_OK_MIN - VIRTUAL_TORSO_RATIO_MIN)
+			ratio <= VIRTUAL_TORSO_RATIO_OK_MAX -> 1f
+			ratio < VIRTUAL_TORSO_RATIO_MAX -> (VIRTUAL_TORSO_RATIO_MAX - ratio) / (VIRTUAL_TORSO_RATIO_MAX - VIRTUAL_TORSO_RATIO_OK_MAX)
+			else -> 0f
+		}
+		if (weight <= 0f) return null
+
+		// Back pointing from the neck to the pelvis, facing where the chest faces
+		val localDir = chestYaw.inv().sandwich(back.unit())
+		val aim = chestYaw * fromTo(NEG_Y, localDir)
+		val smoothed = virtualTorsoAimSmoothed?.interpR(aim, VIRTUAL_TORSO_SMOOTHING) ?: aim
+		virtualTorsoAimSmoothed = smoothed
+		return Pair(smoothed, weight)
 	}
 
 	/**
@@ -1069,6 +1208,7 @@ class HumanSkeleton(
 	 * lose part of their tilt. The pelvis isn't touched, so the legs stay put.
 	 */
 	private fun straightenBackWhenSitting() {
+		if (!modCorrections) return
 		val left = leftUpperLegTracker ?: return
 		val right = rightUpperLegTracker ?: return
 
@@ -1104,6 +1244,7 @@ class HumanSkeleton(
 	 * their heading sits between the pelvis and the thighs.
 	 */
 	private fun legsHipRotation(hipRot: Quaternion): Quaternion {
+		if (!modCorrections) return hipRot
 		val left = leftUpperLegTracker ?: return hipRot
 		val right = rightUpperLegTracker ?: return hipRot
 
@@ -1165,7 +1306,7 @@ class HumanSkeleton(
 			legRot = it.getRotation()
 		} ?: run {
 			// SlimeVR Mod: no shin tracker but a foot tracker, estimate the shin
-			footTracker?.let { foot ->
+			footTracker?.takeIf { modCorrections }?.let { foot ->
 				legRot = estimateShin(upperLegBone, lowerLegBone, foot, legRot)
 			} ?: run {
 				// Use lower leg or hip's yaw
@@ -1791,6 +1932,10 @@ class HumanSkeleton(
 		}
 		// SlimeVR Mod: standing straight, take the floor for the shin estimate
 		shinFloorCalibrateFrames = 5
+		// SlimeVR Mod: forget the planted feet of the virtual torso
+		leftLegAnchor.anchor = null
+		rightLegAnchor.anchor = null
+		virtualTorsoAimSmoothed = null
 		legTweaks.resetBuffer()
 		localizer.reset()
 		ikSolver.resetOffsets()

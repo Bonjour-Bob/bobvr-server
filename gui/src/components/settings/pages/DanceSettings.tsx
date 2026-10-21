@@ -39,6 +39,8 @@ export type DanceForm = {
     extendedPelvis: boolean;
     extendedKnee: boolean;
     enforceConstraints: boolean;
+    // SlimeVR Mod : corrections du mod (false = comportement officiel)
+    modCorrections?: boolean;
   };
   legTweaks: { correctionStrength: number };
   drift: {
@@ -92,7 +94,7 @@ const ONE_TO_ONE_PRESET: DanceForm = {
     toeSnap: false,
     extendedSpine: true,
     extendedPelvis: true,
-    extendedKnee: false,
+    extendedKnee: true,
     enforceConstraints: false,
   },
   legTweaks: { correctionStrength: 0.3 },
@@ -100,11 +102,32 @@ const ONE_TO_ONE_PRESET: DanceForm = {
   resets: { yawResetSmoothTime: 0.2 },
 };
 
-export type ModProfile = 'dance' | 'one-to-one';
+// Profil Origine : tout comme SlimeVR d'origine (reglages par defaut
+// officiels) et les corrections du mod coupees.
+const ORIGIN_PRESET: DanceForm = {
+  filtering: { type: FilteringType.PREDICTION.toString(), amount: 0.2 },
+  toggles: {
+    floorClip: true,
+    skatingCorrection: true,
+    footPlant: true,
+    toeSnap: false,
+    extendedSpine: true,
+    extendedPelvis: true,
+    extendedKnee: true,
+    enforceConstraints: true,
+    modCorrections: false,
+  },
+  legTweaks: { correctionStrength: 0.3 },
+  drift: { enabled: false, prediction: false, amount: 0.8, maxResets: 6 },
+  resets: { yawResetSmoothTime: 0 },
+};
+
+export type ModProfile = 'dance' | 'one-to-one' | 'origin';
 
 const PROFILE_PRESETS: Record<ModProfile, DanceForm> = {
   dance: DANCE_PRESET,
   'one-to-one': ONE_TO_ONE_PRESET,
+  origin: ORIGIN_PRESET,
 };
 
 // The backup holds the user's own settings while a profile is on (one backup
@@ -116,7 +139,8 @@ function readActiveProfile(): ModProfile | null {
   if (readBackup() === null) return null;
   try {
     const value = localStorage.getItem(ACTIVE_PROFILE_KEY);
-    return value === 'one-to-one' ? 'one-to-one' : 'dance';
+    if (value === 'one-to-one' || value === 'origin') return value;
+    return 'dance';
   } catch {
     return 'dance';
   }
@@ -130,7 +154,8 @@ const ONE_TO_ONE_DEFAULT_KEY = 'slimevr-mod-1to1-default';
 // v4 : sans blocage au sol (il retenait le pied quand on leve la jambe)
 // v5 : recentrage par double tap en douceur (0,2 s) comme en mode danse
 // v6 : correction de glissade revenue (30 %), relachement des pieds en douceur
-const ONE_TO_ONE_DEFAULT_VERSION = '6';
+// v7 : genoux etendus comme en mode danse
+const ONE_TO_ONE_DEFAULT_VERSION = '7';
 
 function needsOneToOneDefault(): boolean {
   try {
@@ -195,6 +220,7 @@ function formFromSettings(s: SettingsResponseT): DanceForm {
       extendedPelvis: !!t?.extendedPelvis,
       extendedKnee: !!t?.extendedKnee,
       enforceConstraints: !!t?.enforceConstraints,
+      modCorrections: t?.correctConstraints ?? true,
     },
     legTweaks: {
       correctionStrength: s.modelSettings?.legTweaks?.correctionStrength || 0.3,
@@ -238,7 +264,7 @@ export function buildDanceRequest(
     !!old?.selfLocalization,
     old?.usePosition ?? true,
     values.toggles.enforceConstraints,
-    old?.correctConstraints ?? true
+    values.toggles.modCorrections ?? true
   );
   const legTweaks = new LegTweaksSettingsT();
   legTweaks.correctionStrength = values.legTweaks.correctionStrength;
@@ -316,8 +342,8 @@ export function useModProfiles() {
     // First start of this version: the 1:1 settings become the base settings
     if (needsOneToOneDefault()) {
       markOneToOneDefault();
-      if (profile === 'dance') {
-        // Dance mode on: 1:1 becomes the settings it goes back to
+      if (profile === 'dance' || profile === 'origin') {
+        // A profile is on: the base settings become the ones it goes back to
         try {
           localStorage.setItem(BACKUP_KEY, JSON.stringify(ONE_TO_ONE_PRESET));
         } catch {
