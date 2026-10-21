@@ -34,7 +34,7 @@ jobs:
         run: |
           set +e
           # Kotlin only: the Java formatter download (Eclipse P2) fails from time to time
-          ./gradlew :server:core:spotlessKotlinCheck :server:desktop:spotlessKotlinCheck --console=plain > spotless.log 2>&1
+          ./gradlew :server:spotlessKotlinCheck --console=plain > spotless.log 2>&1
           code=$?
           grep -E -A40 'What went wrong|violations' spotless.log | head -80 | while IFS= read -r line; do echo "::warning::${line}"; done
           exit $code
