@@ -1414,10 +1414,20 @@ class HumanSkeleton(
 		val thighDir = thighRot.sandwich(NEG_Y)
 		val shinDir = shinRot.sandwich(NEG_Y)
 
-		val flat = ((HEELS_SHIN_FLAT_START - abs(shinDir.y)) / (HEELS_SHIN_FLAT_START - HEELS_SHIN_FLAT_FULL)).coerceIn(0f, 1f)
-		val back = ((-shinDir.dot(forward) - HEELS_SHIN_BACK_START) / (HEELS_SHIN_BACK_FULL - HEELS_SHIN_BACK_START)).coerceIn(0f, 1f)
-		val ahead = ((thighDir.dot(forward) - HEELS_THIGH_FORWARD_START) / (HEELS_THIGH_FORWARD_FULL - HEELS_THIGH_FORWARD_START)).coerceIn(0f, 1f)
-		val weight = upright * flat * back * ahead
+		// Both legs must be folded: standing on one leg and bending the other
+		// knee (heel up behind) looks the same for that one leg, and its shin
+		// must then move freely
+		val left = leftUpperLegTracker ?: return
+		val leftShin = leftLowerLegTracker ?: return
+		val right = rightUpperLegTracker ?: return
+		val rightShin = rightLowerLegTracker ?: return
+		val bothLegs = min(
+			heelsLegWeight(left.getRotation().sandwich(NEG_Y), leftShin.getRotation().sandwich(NEG_Y), forward),
+			heelsLegWeight(right.getRotation().sandwich(NEG_Y), rightShin.getRotation().sandwich(NEG_Y), forward),
+		)
+		if (bothLegs <= 0f) return
+
+		val weight = upright * bothLegs * heelsLegWeight(thighDir, shinDir, forward)
 		if (weight <= 0f) return
 
 		val newThigh = limitDirection(thighDir, forward, -1f, HEELS_THIGH_MAX_UP)
@@ -1438,6 +1448,18 @@ class HumanSkeleton(
 			footBone.setRotation(shinFix * footRot)
 			footTrackerBone.setRotation(shinFix * footRot)
 		}
+	}
+
+	/**
+	 * SlimeVR Mod: how much one leg is in the "sitting on the heels" pose:
+	 * thigh forward, shin about flat (and not raised) pointing backward
+	 */
+	private fun heelsLegWeight(thighDir: Vector3, shinDir: Vector3, forward: Vector3): Float {
+		if (shinDir.y > HEELS_SHIN_FLAT_FULL) return 0f // foot higher than the knee
+		val flat = ((HEELS_SHIN_FLAT_START - abs(shinDir.y)) / (HEELS_SHIN_FLAT_START - HEELS_SHIN_FLAT_FULL)).coerceIn(0f, 1f)
+		val back = ((-shinDir.dot(forward) - HEELS_SHIN_BACK_START) / (HEELS_SHIN_BACK_FULL - HEELS_SHIN_BACK_START)).coerceIn(0f, 1f)
+		val ahead = ((thighDir.dot(forward) - HEELS_THIGH_FORWARD_START) / (HEELS_THIGH_FORWARD_FULL - HEELS_THIGH_FORWARD_START)).coerceIn(0f, 1f)
+		return flat * back * ahead
 	}
 
 	/**

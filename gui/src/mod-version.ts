@@ -2,7 +2,7 @@
 // Grosse mise a jour : +0.1 (0.7 -> 0.8), major: true.
 // Petite mise a jour (correctif, petit reglage) : +0.0.1 (0.7 -> 0.7.1).
 // Ajouter les nouveautes en haut de MOD_CHANGELOG a chaque fois.
-export const MOD_VERSION = '0.9.1';
+export const MOD_VERSION = '0.9.2';
 
 export type ModChangelogEntry = {
   version: string;
@@ -11,6 +11,12 @@ export type ModChangelogEntry = {
 };
 
 export const MOD_CHANGELOG: ModChangelogEntry[] = [
+  {
+    version: '0.9.2',
+    changes: [
+      'Debout sur une jambe en pliant l’autre genou (talon vers l’arrière) : le tibia bouge librement, il ne reste plus coincé à l’horizontale. La correction « assis sur les talons » ne s’active plus que quand les deux jambes sont repliées.',
+    ],
+  },
   {
     version: '0.9.1',
     changes: [
