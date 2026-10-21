@@ -159,8 +159,34 @@ abstract class SteamVRBridge(
 			TrackerRole.RIGHT_FOOT to setOf(skeleton.rightLowerLegTracker, skeleton.rightFootTracker),
 		)
 
+		// SlimeVR Mod: a tracker that restarts or loses the Wi-Fi for a moment
+		// is left out of the skeleton until it comes back. Its SteamVR tracker
+		// used to be turned off and back on, and VRChat then lost that leg (or
+		// the chest, the hip...) until the next calibration. Now the SteamVR
+		// tracker stays on as long as a tracker is assigned to that body part,
+		// even while it is disconnected.
+		val assignedPositions = server.allTrackers
+			.filter { !it.isInternal && !it.isComputed && it.device?.origin != DeviceOrigin.STEAMVR }
+			.mapNotNull { it.trackerPosition }
+			.toSet()
+		val roleToPositions = mapOf(
+			TrackerRole.CHEST to setOf(TrackerPosition.UPPER_CHEST, TrackerPosition.CHEST),
+			TrackerRole.LEFT_ELBOW to setOf(TrackerPosition.LEFT_UPPER_ARM),
+			TrackerRole.RIGHT_ELBOW to setOf(TrackerPosition.RIGHT_UPPER_ARM),
+			TrackerRole.WAIST to setOf(TrackerPosition.UPPER_CHEST, TrackerPosition.CHEST, TrackerPosition.WAIST, TrackerPosition.HIP),
+			TrackerRole.LEFT_KNEE to setOf(TrackerPosition.LEFT_UPPER_LEG),
+			TrackerRole.RIGHT_KNEE to setOf(TrackerPosition.RIGHT_UPPER_LEG),
+			TrackerRole.LEFT_FOOT to setOf(TrackerPosition.LEFT_LOWER_LEG, TrackerPosition.LEFT_FOOT),
+			TrackerRole.RIGHT_FOOT to setOf(TrackerPosition.RIGHT_LOWER_LEG, TrackerPosition.RIGHT_FOOT),
+		)
+		val steamVRWaist = (roleToTrackers[TrackerRole.WAIST] ?: emptySet()).any {
+			it?.device?.origin == DeviceOrigin.STEAMVR
+		}
+
 		for ((role, trackers) in roleToTrackers) {
-			val shouldShare = if (role == TrackerRole.WAIST) {
+			val stillAssigned = (roleToPositions[role] ?: emptySet()).any { it in assignedPositions } &&
+				!(role == TrackerRole.WAIST && steamVRWaist)
+			val shouldShare = stillAssigned || if (role == TrackerRole.WAIST) {
 				// Waist is special, it should be enabled if there is any tracker on the spine,
 				// but ignored if the waist or hip tracker is from us
 				skeleton.hasSpineTracker &&

@@ -33,6 +33,8 @@ import io.github.axisangles.ktmath.Vector3.Companion.NULL
 import io.github.axisangles.ktmath.Vector3.Companion.POS_Y
 import solarxr_protocol.datatypes.BodyPart
 import java.lang.IllegalArgumentException
+import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
@@ -43,6 +45,12 @@ private const val PELVIS_TILT_ON_LEGS = 0.3f // part of the pelvis tilt / sway
 private const val PELVIS_TWIST_FROM_LEGS = 0.7f // heading taken from the thighs
 private const val PELVIS_UPRIGHT_MIN = 0.5f // cos 60 deg: lying or legs raised, not used
 private const val PELVIS_UPRIGHT_FULL = 0.87f // cos 30 deg: upright, fully used
+
+// SlimeVR Mod: the pelvis corrections (hip joints taking only part of the
+// pelvis tilt, 5-tracker chest staying upright) fade out sooner, so half lying
+// or reclined the body stays straight instead of bending at the hips
+private const val PELVIS_LEANING_MAX = 0.77f // cos 40 deg: tilted more, not used
+private const val PELVIS_LEANING_FULL = 0.91f // cos 25 deg: tilted less, fully used
 
 // SlimeVR Mod: when sitting, part of the back's tilt is removed so a slightly
 // slouched back doesn't look folded in two
@@ -68,8 +76,19 @@ private const val SHIN_LIFT_MARGIN = 0.2f // knee higher than shin + 20%: foot l
 private const val SHIN_FLAT_MIN = 0.7f // foot tilted more than ~45 deg: follow the foot
 private const val SITTING_THIGH_START = 0.7f // thighs more upright: standing
 private const val SITTING_THIGH_FULL = 0.3f // thighs close to flat: sitting
-private const val SITTING_PELVIS_LYING = 0.5f // pelvis tilted 60 deg or more: lying
-private const val SITTING_PELVIS_UPRIGHT = 0.7f // pelvis tilted under 45 deg
+private const val SITTING_PELVIS_LYING = 0.77f // pelvis tilted 40 deg or more: reclined or lying
+private const val SITTING_PELVIS_UPRIGHT = 0.91f // pelvis tilted under 25 deg
+
+// SlimeVR Mod: sitting on the heels (thigh and shin trackers)
+private const val HEELS_SHIN_FLAT_START = 0.6f // shin flatter than this (height part) starts counting
+private const val HEELS_SHIN_FLAT_FULL = 0.35f
+private const val HEELS_SHIN_BACK_START = 0.3f // shin pointing backward
+private const val HEELS_SHIN_BACK_FULL = 0.6f
+private const val HEELS_THIGH_FORWARD_START = 0.3f // thigh pointing forward
+private const val HEELS_THIGH_FORWARD_FULL = 0.6f
+private const val HEELS_MAX_SPREAD = 0.5f // rad (~30 deg) away from straight ahead / straight back
+private const val HEELS_THIGH_MAX_UP = 0f // the knee is never higher than the hip
+private const val HEELS_SHIN_MAX_TILT = 0.12f // shin about flat on the floor (~7 deg)
 
 class HumanSkeleton(
 	val humanPoseManager: HumanPoseManager,
@@ -611,6 +630,9 @@ class HumanSkeleton(
 
 		legTweaks.tweakLegs()
 		localizer.update()
+
+		// SlimeVR Mod: never send a broken pose to SteamVR
+		keepComputedTrackersValid()
 	}
 
 	/**
@@ -1055,7 +1077,7 @@ class HumanSkeleton(
 
 		val hipRot = hip.getRotation()
 		val pelvisUpright = -hipRot.sandwich(NEG_Y).y
-		val upright = ((pelvisUpright - PELVIS_UPRIGHT_MIN) / (PELVIS_UPRIGHT_FULL - PELVIS_UPRIGHT_MIN)).coerceIn(0f, 1f)
+		val upright = ((pelvisUpright - PELVIS_LEANING_MAX) / (PELVIS_LEANING_FULL - PELVIS_LEANING_MAX)).coerceIn(0f, 1f)
 		if (upright <= 0f) return
 
 		val hipYaw = hipRot.project(POS_Y).unit()
@@ -1264,7 +1286,7 @@ class HumanSkeleton(
 		// Only when the pelvis is roughly upright: lying down, the hip joints
 		// follow the pelvis fully like in the official version
 		val pelvisUpright = (-hipRot.sandwich(NEG_Y).y).coerceIn(-1f, 1f)
-		val upright = ((pelvisUpright - PELVIS_UPRIGHT_MIN) / (PELVIS_UPRIGHT_FULL - PELVIS_UPRIGHT_MIN)).coerceIn(0f, 1f)
+		val upright = ((pelvisUpright - PELVIS_LEANING_MAX) / (PELVIS_LEANING_FULL - PELVIS_LEANING_MAX)).coerceIn(0f, 1f)
 		if (upright <= 0f) return hipRot
 
 		val hipYaw = hipRot.project(POS_Y).unit()
@@ -1348,6 +1370,137 @@ class HumanSkeleton(
 					upperLegBone.setRotation(upperRot.interpR(extendedRot, kneeAnkleAveraging))
 					kneeTrackerBone.setRotation(upperRot.interpR(extendedRot, kneeTrackerAnkleAveraging))
 				}
+			}
+		}
+
+		// SlimeVR Mod: sitting on the heels, keep the legs folded straight
+		// under the body instead of rising or going off to the sides
+		if (modCorrections && upperLegTracker != null && lowerLegTracker != null) {
+			correctSittingOnHeels(upperLegBone, kneeTrackerBone, lowerLegBone, footBone, footTrackerBone, footTracker != null)
+		}
+	}
+
+	/**
+	 * SlimeVR Mod: sitting on the heels, the thighs lie forward and the shins
+	 * lie flat on the floor behind the knees. In that pose the trackers slide
+	 * on the legs and their small mounting errors show a lot, so the legs
+	 * looked raised or spread to the sides. Here, only in that pose (pelvis
+	 * upright, thigh forward, shin flat and backward), the thigh is kept
+	 * within ~30 deg of straight ahead and never pointing up, and the shin
+	 * lies about flat, back under the thigh. Kneeling up, sitting
+	 * cross-legged or lying down aren't touched.
+	 */
+	private fun correctSittingOnHeels(
+		upperLegBone: Bone,
+		kneeTrackerBone: Bone,
+		lowerLegBone: Bone,
+		footBone: Bone,
+		footTrackerBone: Bone,
+		hasFootTracker: Boolean,
+	) {
+		val hipRot = hipBone.getLocalRotation() * hipBone.rotationOffset.inv()
+		val pelvisUpright = -hipRot.sandwich(NEG_Y).y
+		val upright = ((pelvisUpright - PELVIS_UPRIGHT_MIN) / (PELVIS_UPRIGHT_FULL - PELVIS_UPRIGHT_MIN)).coerceIn(0f, 1f)
+		if (upright <= 0f) return
+		val hipYaw = hipRot.project(POS_Y)
+		if (hipYaw.lenSq() < 1e-6f) return
+		val forwardRaw = hipYaw.unit().sandwich(Vector3(0f, 0f, -1f))
+		val forwardFlat = Vector3(forwardRaw.x, 0f, forwardRaw.z)
+		if (forwardFlat.lenSq() < 1e-6f) return
+		val forward = forwardFlat.unit()
+
+		val thighRot = upperLegBone.getLocalRotation() * upperLegBone.rotationOffset.inv()
+		val shinRot = lowerLegBone.getLocalRotation() * lowerLegBone.rotationOffset.inv()
+		val thighDir = thighRot.sandwich(NEG_Y)
+		val shinDir = shinRot.sandwich(NEG_Y)
+
+		val flat = ((HEELS_SHIN_FLAT_START - abs(shinDir.y)) / (HEELS_SHIN_FLAT_START - HEELS_SHIN_FLAT_FULL)).coerceIn(0f, 1f)
+		val back = ((-shinDir.dot(forward) - HEELS_SHIN_BACK_START) / (HEELS_SHIN_BACK_FULL - HEELS_SHIN_BACK_START)).coerceIn(0f, 1f)
+		val ahead = ((thighDir.dot(forward) - HEELS_THIGH_FORWARD_START) / (HEELS_THIGH_FORWARD_FULL - HEELS_THIGH_FORWARD_START)).coerceIn(0f, 1f)
+		val weight = upright * flat * back * ahead
+		if (weight <= 0f) return
+
+		val newThigh = limitDirection(thighDir, forward, -1f, HEELS_THIGH_MAX_UP)
+		val thighFlat = Vector3(newThigh.x, 0f, newThigh.z)
+		val behind = if (thighFlat.lenSq() > 1e-6f) -thighFlat.unit() else -forward
+		val newShin = limitDirection(shinDir, behind, -HEELS_SHIN_MAX_TILT, HEELS_SHIN_MAX_TILT)
+
+		val thighFix = IDENTITY.interpR(fromTo(thighDir, newThigh), weight)
+		val shinFix = IDENTITY.interpR(fromTo(shinDir, newShin), weight)
+		if (!isFinite(thighFix) || !isFinite(shinFix)) return
+
+		upperLegBone.setRotation(thighFix * thighRot)
+		kneeTrackerBone.setRotation(thighFix * (kneeTrackerBone.getLocalRotation() * kneeTrackerBone.rotationOffset.inv()))
+		lowerLegBone.setRotation(shinFix * shinRot)
+		if (!hasFootTracker) {
+			// The foot follows the shin when there is no foot tracker
+			val footRot = footBone.getLocalRotation() * footBone.rotationOffset.inv()
+			footBone.setRotation(shinFix * footRot)
+			footTrackerBone.setRotation(shinFix * footRot)
+		}
+	}
+
+	/**
+	 * SlimeVR Mod: the direction turned (around the vertical) to at most
+	 * HEELS_MAX_SPREAD from center (flat, unit), with its height part kept
+	 * between minY and maxY
+	 */
+	private fun limitDirection(direction: Vector3, center: Vector3, minY: Float, maxY: Float): Vector3 {
+		val y = direction.y.coerceIn(minY, maxY)
+		val flatLength = sqrt(max(1f - y * y, 0f))
+		val flat = Vector3(direction.x, 0f, direction.z)
+		var heading = center
+		if (flat.lenSq() > 1e-6f) {
+			val h = flat.unit()
+			// Signed angle from center to h around +Y
+			val angle = atan2(center.z * h.x - center.x * h.z, center.dot(h))
+				.coerceIn(-HEELS_MAX_SPREAD, HEELS_MAX_SPREAD)
+			heading = Quaternion.rotationAroundYAxis(angle).sandwich(center)
+		}
+		return Vector3(heading.x * flatLength, y, heading.z * flatLength)
+	}
+
+	private fun isFinite(q: Quaternion): Boolean = q.w.isFinite() && q.x.isFinite() && q.y.isFinite() && q.z.isFinite()
+
+	private fun isFinite(v: Vector3): Boolean = v.x.isFinite() && v.y.isFinite() && v.z.isFinite()
+
+	// SlimeVR Mod: last good pose of each output tracker
+	private class GoodPose(var position: Vector3, var rotation: Quaternion)
+	private val goodPoses = HashMap<Tracker, GoodPose>()
+
+	/**
+	 * SlimeVR Mod: an output tracker with a broken (NaN) position or rotation
+	 * disappears in SteamVR, and VRChat then loses that body part. If that
+	 * ever happens, keep its last good pose instead.
+	 */
+	private fun keepComputedTrackersValid() {
+		for (tracker in listOf(
+			computedHeadTracker,
+			computedChestTracker,
+			computedHipTracker,
+			computedLeftKneeTracker,
+			computedRightKneeTracker,
+			computedLeftFootTracker,
+			computedRightFootTracker,
+			computedLeftElbowTracker,
+			computedRightElbowTracker,
+			computedLeftHandTracker,
+			computedRightHandTracker,
+		)) {
+			if (tracker == null) continue
+			val position = tracker.position
+			val rotation = tracker.getRawRotation()
+			val good = goodPoses[tracker]
+			if (isFinite(position) && isFinite(rotation)) {
+				if (good == null) {
+					goodPoses[tracker] = GoodPose(position, rotation)
+				} else {
+					good.position = position
+					good.rotation = rotation
+				}
+			} else if (good != null) {
+				tracker.position = good.position
+				tracker.setRotation(good.rotation)
 			}
 		}
 	}

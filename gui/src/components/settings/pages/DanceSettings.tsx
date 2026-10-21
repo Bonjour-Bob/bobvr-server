@@ -80,13 +80,12 @@ const DANCE_PRESET: DanceForm = {
   resets: { yawResetSmoothTime: 0.2 },
 };
 
-// Profil 1:1 : suivre les trackers le plus fidelement possible. Filtrage
-// leger (prediction 20 %, sans filtrage les jambes saccadent), pas de genoux etendus (ce qui coupe aussi les corrections du mod
-// sur les hanches, les genoux et le dos), et juste ce qu'il faut pour que les
-// pieds ne traversent pas le sol. Pas de correction de glissade : elle bloque
-// les pieds au sol puis les relache d'un coup, ce n'est pas fluide.
+// Mode normal (reglages de base) : les options des jambes du mode danse
+// (genoux etendus, glissade corrigee avec relachement en douceur), recentrage
+// par double tap en douceur, et un lissage leger a la place de la prediction
+// pour que plier le genou et lever la jambe soit moins brusque.
 const ONE_TO_ONE_PRESET: DanceForm = {
-  filtering: { type: FilteringType.PREDICTION.toString(), amount: 0.2 },
+  filtering: { type: FilteringType.SMOOTHING.toString(), amount: 0.25 },
   toggles: {
     floorClip: false,
     skatingCorrection: true,
@@ -155,7 +154,10 @@ const ONE_TO_ONE_DEFAULT_KEY = 'slimevr-mod-1to1-default';
 // v5 : recentrage par double tap en douceur (0,2 s) comme en mode danse
 // v6 : correction de glissade revenue (30 %), relachement des pieds en douceur
 // v7 : genoux etendus comme en mode danse
-const ONE_TO_ONE_DEFAULT_VERSION = '7';
+// v8 : lissage leger au lieu de la prediction (jambes moins brusques), et
+// retour au mode normal (les anciens reglages sauvegardes n'avaient ni les
+// genoux etendus ni le double tap en douceur)
+const ONE_TO_ONE_DEFAULT_VERSION = '8';
 
 function needsOneToOneDefault(): boolean {
   try {
@@ -339,27 +341,17 @@ export function useModProfiles() {
     settingsRef.current = s;
     let profile = readActiveProfile();
 
-    // First start of this version: the 1:1 settings become the base settings
+    // First start of this version: back to normal mode with the new base
+    // settings (the settings saved by older versions are dropped)
     if (needsOneToOneDefault()) {
       markOneToOneDefault();
-      if (profile === 'dance' || profile === 'origin') {
-        // A profile is on: the base settings become the ones it goes back to
-        try {
-          localStorage.setItem(BACKUP_KEY, JSON.stringify(ONE_TO_ONE_PRESET));
-        } catch {
-          // ignore
-        }
-      } else {
-        if (profile === 'one-to-one') {
-          clearBackup();
-          profile = null;
-        }
-        sendRPCPacket(
-          RpcMessage.ChangeSettingsRequest,
-          buildDanceRequest(ONE_TO_ONE_PRESET, s)
-        );
-        sendRPCPacket(RpcMessage.SettingsRequest, new SettingsRequestT());
-      }
+      clearBackup();
+      profile = null;
+      sendRPCPacket(
+        RpcMessage.ChangeSettingsRequest,
+        buildDanceRequest(ONE_TO_ONE_PRESET, s)
+      );
+      sendRPCPacket(RpcMessage.SettingsRequest, new SettingsRequestT());
     }
 
     setActive(profile);

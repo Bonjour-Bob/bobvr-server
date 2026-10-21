@@ -2,7 +2,7 @@
 // Grosse mise a jour : +0.1 (0.7 -> 0.8), major: true.
 // Petite mise a jour (correctif, petit reglage) : +0.0.1 (0.7 -> 0.7.1).
 // Ajouter les nouveautes en haut de MOD_CHANGELOG a chaque fois.
-export const MOD_VERSION = '0.9';
+export const MOD_VERSION = '0.9.1';
 
 export type ModChangelogEntry = {
   version: string;
@@ -11,6 +11,17 @@ export type ModChangelogEntry = {
 };
 
 export const MOD_CHANGELOG: ModChangelogEntry[] = [
+  {
+    version: '0.9.1',
+    changes: [
+      'VRChat : quand un capteur redémarre ou perd le Wi-Fi un instant, son capteur SteamVR reste allumé, donc la jambe (ou le torse, la hanche…) ne disparaît plus à la calibration.',
+      'Assis sur les talons : les jambes restent repliées droit sous le corps au lieu de se lever ou de partir sur les côtés (pour 5, 6, 8 ou 10 capteurs).',
+      'Allongé ou à moitié allongé : le corps reste droit (les corrections du bassin et du dos s’arrêtent plus tôt quand on se penche en arrière).',
+      'Mode normal : recentrage en douceur au double tap, comme en mode danse.',
+      'Mode normal : lissage léger, plier le genou et lever la jambe est moins brusque.',
+      'Au premier démarrage de cette version, l’app repasse en mode normal avec les nouveaux réglages.',
+    ],
+  },
   {
     version: '0.9',
     major: true,
