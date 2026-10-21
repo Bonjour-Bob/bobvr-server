@@ -35,7 +35,7 @@ jobs:
           set +e
           ./gradlew spotlessCheck --console=plain > spotless.log 2>&1
           code=$?
-          grep -E 'violations|\.kt|\.java|^\s+[-+@]|What went wrong|rror' spotless.log | head -60 | while IFS= read -r line; do echo "::warning::${line}"; done
+          grep -A40 'What went wrong' spotless.log | head -60 | while IFS= read -r line; do echo "::warning::${line}"; done
           exit $code
 
   gui:
