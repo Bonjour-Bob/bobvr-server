@@ -24,7 +24,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          ./gradlew :server:core:compileKotlin :server:core:compileJava --console=plain > compile.log 2>&1
+          ./gradlew :server:core:compileKotlin :server:core:compileJava :server:desktop:compileKotlin --console=plain > compile.log 2>&1
           code=$?
           grep -E '^e: |error:|What went wrong' -A2 compile.log | head -40 | while IFS= read -r line; do echo "::error::${line}"; done
           exit $code
@@ -35,7 +35,7 @@ jobs:
           set +e
           ./gradlew spotlessCheck --console=plain > spotless.log 2>&1
           code=$?
-          grep -E 'violations|\.kt|\.java|^\s+[-+]' spotless.log | head -40 | while IFS= read -r line; do echo "::warning::${line}"; done
+          grep -E 'violations|\.kt|\.java|^\s+[-+@]|What went wrong|rror' spotless.log | head -60 | while IFS= read -r line; do echo "::warning::${line}"; done
           exit $code
 
   gui:
