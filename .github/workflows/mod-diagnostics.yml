@@ -1,0 +1,62 @@
+# BOBvr : montre les erreurs de compilation / formatage / lint comme
+# annotations (lisibles sans ouvrir les logs).
+name: BOBvr Diagnostics
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  server:
+    name: Server compile + spotless
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Compile
+        shell: bash
+        run: |
+          set +e
+          ./gradlew :server:core:compileKotlin :server:core:compileJava --console=plain > compile.log 2>&1
+          code=$?
+          grep -E '^e: |error:|What went wrong' -A2 compile.log | head -40 | while IFS= read -r line; do echo "::error::${line}"; done
+          exit $code
+      - name: Spotless
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          ./gradlew spotlessCheck --console=plain > spotless.log 2>&1
+          code=$?
+          grep -E 'violations|\.kt|\.java|^\s+[-+]' spotless.log | head -40 | while IFS= read -r line; do echo "::warning::${line}"; done
+          exit $code
+
+  gui:
+    name: GUI lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.node-version'
+          cache: 'pnpm'
+      - name: Lint
+        shell: bash
+        run: |
+          set +e
+          pnpm i > /dev/null 2>&1
+          cd gui && pnpm run lint > ../lint.log 2>&1
+          code=$?
+          cd ..
+          grep -E 'error|warning|\.tsx?' lint.log | head -50 | while IFS= read -r line; do echo "::error::${line}"; done
+          exit $code
