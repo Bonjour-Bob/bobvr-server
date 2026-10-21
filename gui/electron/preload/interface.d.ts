@@ -40,7 +40,8 @@ export type GHReturn = {
 };
 
 export type DiscordPresence =
-  { enable: false } | { enable: true; activity: string; iconText: string | undefined };
+  | { enable: false }
+  | { enable: true; activity: string; iconText: string | undefined };
 
 export interface IElectronAPI {
   onServerStatus: (cb: (data: ServerStatusEvent) => void) => () => void;
