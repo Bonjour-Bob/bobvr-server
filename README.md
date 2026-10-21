@@ -1,3 +1,23 @@
+# BOBvr (SlimeVR Mod) — v0.9
+
+Version personnelle et non officielle de [SlimeVR Server](https://github.com/SlimeVR/SlimeVR-Server), par **Bonjour-Bob**.
+Site et téléchargement : https://bonjour-bobvr.netlify.app
+
+## Ce que le mod ajoute
+- **Mode 5 capteurs** (hanche + cuisses + tibias, sans torse) avec un **torse virtuel** : les hanches bougent séparément du torse comme avec 6 capteurs.
+- **Kit 8 capteurs chevilles et coudes**.
+- **Pieds** : blocage au sol par les trackers de pieds, relâchement en douceur.
+- **Genoux et dos** : genoux moins entraînés par les hanches, dos moins courbé assis, genoux qui ne remontent plus assis sur les talons.
+- **Profils** : réglages de base fidèles, **Mode Danse**, **Mode Origine** (« OG », tout comme SlimeVR de base).
+- **App** : thème noir et blanc, nouveautés de chaque version (bouton « ? »), alerte quand une mise à jour sort sur le site, lancement automatique avec SteamVR, installeur qui met à jour une version déjà installée.
+
+Le journal complet des versions est dans [`gui/src/mod-version.ts`](gui/src/mod-version.ts).
+
+## Licence
+Basé sur SlimeVR Server (MIT / Apache-2.0, voir `LICENSE-MIT` et `LICENSE-APACHE`). Ce n'est pas une version officielle de SlimeVR.
+
+---
+
 # SlimeVR Server
 Server app for SlimeVR ecosystem
 
