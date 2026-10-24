@@ -131,7 +131,8 @@ class QuaternionMovingAverage(
 		// SlimeVR Mod: first packet after a Wi-Fi hiccup, or a sudden jump
 		val gap = secondsSinceLastPacket()
 		lastPacketNanos = System.nanoTime()
-		val catchUp = fluidGaps && type != TrackerFilters.NONE &&
+		val catchUp = fluidGaps &&
+			type != TrackerFilters.NONE &&
 			(gap > GAP_SECONDS || oldQ.angleToR(newQ) > JUMP_RADIANS)
 		if (catchUp) {
 			glideFrom = filteredQuaternion
