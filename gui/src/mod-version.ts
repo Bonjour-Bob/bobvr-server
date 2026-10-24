@@ -2,7 +2,7 @@
 // Grosse mise a jour : +0.1 (0.7 -> 0.8), major: true.
 // Petite mise a jour (correctif, petit reglage) : +0.0.1 (0.7 -> 0.7.1).
 // Ajouter les nouveautes en haut de MOD_CHANGELOG a chaque fois.
-export const MOD_VERSION = '0.9.2';
+export const MOD_VERSION = '0.9.3';
 
 export type ModChangelogEntry = {
   version: string;
@@ -11,6 +11,14 @@ export type ModChangelogEntry = {
 };
 
 export const MOD_CHANGELOG: ModChangelogEntry[] = [
+  {
+    version: '0.9.3',
+    changes: [
+      'Assis : tu peux te pencher en avant. Seul un dos un peu avachi est redressé, une vraie penchée passe en entier.',
+      'Plus fluide quand le Wi-Fi d’un capteur a un raté : pendant la coupure le membre ne part plus tout seul (plus de prédiction dans le vide), et quand il revient il glisse jusqu’à sa place au lieu de sauter (sauf en mode Origine).',
+      'Les capteurs restent mieux connectés : le serveur leur parle 10 fois par seconde au lieu de 2, donc avec un Wi-Fi qui perd des paquets ils décrochent beaucoup moins souvent.',
+    ],
+  },
   {
     version: '0.9.2',
     changes: [

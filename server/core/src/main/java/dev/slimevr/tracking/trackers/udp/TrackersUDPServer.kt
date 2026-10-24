@@ -343,7 +343,11 @@ class TrackersUDPServer(private val port: Int, name: String, private val tracker
 						e,
 					)
 				}
-				if (lastKeepup + 500 < System.currentTimeMillis()) {
+				// SlimeVR Mod: heartbeat every 100 ms instead of 500 ms. A tracker
+				// that hears nothing from the server for ~3 s drops the connection
+				// and stops sending until it reconnects; with a lossy Wi-Fi, more
+				// heartbeats keep it connected (they are tiny packets)
+				if (lastKeepup + 100 < System.currentTimeMillis()) {
 					lastKeepup = System.currentTimeMillis()
 					synchronized(connections) {
 						for (conn in connections) {

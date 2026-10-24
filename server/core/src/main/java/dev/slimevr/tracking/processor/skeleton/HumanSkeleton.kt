@@ -3,6 +3,7 @@ package dev.slimevr.tracking.processor.skeleton
 import dev.slimevr.VRServer
 import dev.slimevr.config.MountingMethods
 import dev.slimevr.config.StayAlignedConfig
+import dev.slimevr.filtering.QuaternionMovingAverage
 import dev.slimevr.tracking.processor.Bone
 import dev.slimevr.tracking.processor.BoneType
 import dev.slimevr.tracking.processor.Constraint
@@ -55,6 +56,7 @@ private const val PELVIS_LEANING_FULL = 0.91f // cos 25 deg: tilted less, fully 
 // SlimeVR Mod: when sitting, part of the back's tilt is removed so a slightly
 // slouched back doesn't look folded in two
 private const val SITTING_BACK_STRAIGHTEN = 0.6f
+private const val SITTING_SLOUCH_MAX = 0.35f // rad (~20 deg): more than twice this is a real lean
 
 // SlimeVR Mod: torso estimate with a hip tracker and no chest tracker (5 trackers)
 private const val HIP_ONLY_CHEST_TILT = 0.3f // part of the pelvis tilt / sway the chest takes
@@ -1261,7 +1263,17 @@ class HumanSkeleton(
 		fun straighten(rot: Quaternion): Quaternion {
 			val yaw = rot.project(POS_Y)
 			if (yaw.lenSq() < 1e-6f) return rot
-			return rot.interpR(yaw.unit(), amount)
+			// Only a slouch is straightened: up to SITTING_SLOUCH_MAX the tilt
+			// is reduced, then the reduction fades out, so leaning forward on
+			// purpose (40 deg and more) goes through fully
+			val tilt = rot.angleToR(yaw.unit())
+			val share = when {
+				tilt <= SITTING_SLOUCH_MAX -> amount
+				tilt < 2f * SITTING_SLOUCH_MAX -> amount * (2f * SITTING_SLOUCH_MAX - tilt) / tilt
+				else -> 0f
+			}
+			if (share <= 0f) return rot
+			return rot.interpR(yaw.unit(), share)
 		}
 
 		val upperChestRot = straighten(upperChestBone.getLocalRotation())
@@ -1749,7 +1761,11 @@ class HumanSkeleton(
 
 			SkeletonConfigToggles.ENFORCE_CONSTRAINTS -> enforceConstraints = newValue
 
-			SkeletonConfigToggles.CORRECT_CONSTRAINTS -> correctConstraints = newValue
+			SkeletonConfigToggles.CORRECT_CONSTRAINTS -> {
+				correctConstraints = newValue
+				// SlimeVR Mod: smooth catch-up after Wi-Fi hiccups, off in "Origine"
+				QuaternionMovingAverage.fluidGaps = newValue
+			}
 		}
 	}
 
