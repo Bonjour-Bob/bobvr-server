@@ -21,6 +21,18 @@ import {
 } from './skeletonParts';
 import { SkeletonProportions, deriveSkeletonProportions } from './skeletonProportions';
 
+// BOBvr: mannequin colors: purple body, pink legs, cyan forearms and hands
+const MOD_PURPLE = new Color('#a33cff');
+const MOD_PINK = new Color('#f04fd8');
+const MOD_CYAN = new Color('#2fe3ff');
+function modBodyColor(bodyPart: BodyPart): Color {
+  const name = BodyPart[bodyPart] ?? '';
+  // Toes first: their names also contain INDEX_, MIDDLE_...
+  if (/LEG|FOOT|TOE/.test(name)) return MOD_PINK;
+  if (/LOWER_ARM|HAND|THUMB|INDEX_|MIDDLE_|RING_|LITTLE_/.test(name)) return MOD_CYAN;
+  return MOD_PURPLE;
+}
+
 const position = new Vector3();
 const quat = new Quaternion();
 
@@ -140,8 +152,16 @@ export class BasedSkeletonMeshHelper extends Object3D {
             }
           }
 
-          for (const [_, attached] of partsByAddr[addr] ?? []) {
+          for (const [part, attached] of partsByAddr[addr] ?? []) {
             const o = og.clone(true);
+            // BOBvr: colored mannequin (one material per body part)
+            const tint = modBodyColor(part.bone.bodyPart);
+            o.traverse((child) => {
+              if (!(child instanceof Mesh)) return;
+              const mat = (child.material as MeshStandardMaterial).clone();
+              mat.color = tint;
+              child.material = mat;
+            });
 
             o.position.set(0, 0, 0);
             o.quaternion.identity();
