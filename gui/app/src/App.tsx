@@ -71,6 +71,8 @@ import {
 } from './components/AppStatusGate';
 import { useProvideErrorReporting } from './hooks/error-reporting';
 import { useProvideProfiles } from './hooks/profiles';
+import { ModUpdateAlert } from './components/ModUpdateAlert';
+import { ModDefaults } from './components/ModDefaults';
 
 export const GH_REPO = 'SlimeVR/SlimeVR-Server';
 export const VersionContext = createContext('');
@@ -85,6 +87,8 @@ function ConnectedApp() {
       <OnboardingContextProvider>
         <TrackingChecklistProvider>
           <VersionUpdateModal />
+          <ModUpdateAlert />
+          <ModDefaults />
           <UdevRulesModal />
           <StepMountingStatusModal />
           <QuickSearchProvider>
@@ -222,6 +226,16 @@ export default function App() {
   const websocketAPI = useProvideWebsocketApi();
   const [updateFound, setUpdateFound] = useState('');
   const electron = provideElectron();
+
+  // BOBvr: 3 seconds of Bob's music at startup
+  useEffect(() => {
+    const music = new Audio('/sounds/bob-demarrage.mp3');
+    music.volume = 0.6;
+    music.play().catch(() => {
+      // Playback blocked (no sound available): ignore
+    });
+    return () => music.pause();
+  }, []);
 
   const fetchReleases = async () => {
     // don't show update stuff when on android

@@ -31,10 +31,16 @@ export function AppStatusGate() {
   const settingsDefaults = useAtomValue(settingsDefaultsAtom);
   const location = useLocation();
   const [appShown, setAppShown] = useState(false);
+  // BOBvr: the startup animation stays on screen for 2 seconds
+  const [splashDone, setSplashDone] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSplashDone(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const statusPath = needsAnswer
     ? ERROR_REPORTING_CONSENT_PATH
-    : !isConnected || !settingsDefaults
+    : !isConnected || !settingsDefaults || !splashDone
       ? CONNECTING_PATH
       : null;
   const onStatusPath = STATUS_PATHS.includes(location.pathname);

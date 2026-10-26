@@ -7,25 +7,83 @@ import {
   SkeletonVisualizerWidget,
 } from './widgets/SkeletonVisualizerWidget';
 import { SkeletonPreviewControls } from './widgets/SkeletonPreviewControls';
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ReactNode, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { Typography } from './commons/Typography';
 import { useLocaleConfig } from '@/i18n/config';
 import { useWebsocketAPI } from '@/hooks/websocket-api';
 import {
+  ProfileKind,
   RpcMessage,
   SkeletonProportionsRequestT,
   SkeletonProportionsResponseT,
 } from 'solarxr-protocol';
+import { useProfileOperations, useProfiles } from '@/hooks/profiles';
 import { Tooltip } from './commons/Tooltip';
 import { Vector3 } from 'three';
 import { RecordIcon } from './commons/icon/RecordIcon';
 import { PauseIcon } from './commons/icon/PauseIcon';
-import { HumanIcon } from './commons/icon/HumanIcon';
 import { useConfig } from '@/hooks/config';
 import { useBHV } from '@/hooks/bvh';
 import { usePauseTracking } from '@/hooks/pause-tracking';
 import { PlayIcon } from './commons/icon/PlayIcon';
+
+// BOBvr: the mod's settings profiles (created by the server)
+const MOD_PROFILE_NORMAL = 'Normal';
+const MOD_PROFILE_DANCE = 'Danse';
+const MOD_PROFILE_ORIGIN = 'Origine';
+
+// BOBvr: dance mode icon (a music note)
+function DanceIcon({ width = 20 }: { width?: number }) {
+  return (
+    <svg width={width} height={width} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M9 18.5a3 3 0 1 1-2-2.83V5.5l12-2.5v12a3 3 0 1 1-2-2.83V7.4l-8 1.67v9.43Z" />
+    </svg>
+  );
+}
+
+// BOBvr: a profile button, clicking the active one goes back to Normal
+function ModProfileButton({
+  profile,
+  tooltipOn,
+  tooltipOff,
+  children,
+}: {
+  profile: string;
+  tooltipOn: string;
+  tooltipOff: string;
+  children: ReactNode;
+}) {
+  const profiles = useProfiles();
+  const { switchProfile } = useProfileOperations();
+  const active = profiles?.settings.active === profile;
+  return (
+    <Tooltip
+      content={
+        <Typography variant="section-title">
+          {active ? tooltipOn : tooltipOff}
+        </Typography>
+      }
+      preferedDirection="top"
+    >
+      <div
+        className={classNames(
+          'flex justify-center items-center w-10 h-10 rounded-full hover:bg-background-60 cursor-pointer text-standard-bold',
+          { 'bg-background-60 text-background-10': active },
+          { 'text-background-30': !active }
+        )}
+        onClick={() =>
+          switchProfile(
+            ProfileKind.SETTINGS,
+            active ? MOD_PROFILE_NORMAL : profile
+          )
+        }
+      >
+        {children}
+      </div>
+    </Tooltip>
+  );
+}
 
 export function PreviewControls({ open }: { open: boolean }) {
   const [userHeight, setUserHeight] = useState('');
@@ -137,19 +195,20 @@ export function PreviewControls({ open }: { open: boolean }) {
               {paused && <PlayIcon width={25} />}
             </Clickable>
           </Tooltip>
-          <Tooltip
-            content={
-              <Typography
-                variant="section-title"
-                id="preview-mocap_mode_soon"
-              />
-            }
-            preferedDirection="top"
+          <ModProfileButton
+            profile={MOD_PROFILE_DANCE}
+            tooltipOn="Mode danse activé (clique pour revenir au mode normal)"
+            tooltipOff="Activer le mode danse"
           >
-            <div className="flex justify-center items-center w-10 h-10 rounded-full cursor-not-allowed">
-              <HumanIcon width={20} />
-            </div>
-          </Tooltip>
+            <DanceIcon width={20} />
+          </ModProfileButton>
+          <ModProfileButton
+            profile={MOD_PROFILE_ORIGIN}
+            tooltipOn="Mode Origine activé : comme SlimeVR de base (clique pour revenir au mode normal)"
+            tooltipOff="Mode Origine : tout comme SlimeVR de base"
+          >
+            OG
+          </ModProfileButton>
         </div>
       </div>
     </>

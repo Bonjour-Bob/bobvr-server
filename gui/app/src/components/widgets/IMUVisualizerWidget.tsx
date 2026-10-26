@@ -30,7 +30,7 @@ import { StayAlignedInfo } from '@/components/stay-aligned/StayAlignedInfo';
 import { FlatDeviceTracker } from '@/store/app-store';
 import { BUTTERFLY_BOARDS } from '@/components/commons/BodyPartIcon';
 
-const GROUND_COLOR = '#4444aa';
+const GROUND_COLOR = '#4d4d4d';
 const CANVAS_HEIGHT = 200;
 
 // Three.js context - isolated from React

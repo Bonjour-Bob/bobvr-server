@@ -34,8 +34,13 @@ export interface CrossStorage {
   save(): Promise<boolean>;
 }
 
-export type GHGet = { type: 'fw-releases' } | { type: 'asset'; url: string };
+export type GHGet =
+  | { type: 'fw-releases' }
+  | { type: 'asset'; url: string }
+  // BOBvr: the mod's site, to know if there is an update
+  | { type: 'mod-site' };
 export type GHReturn = {
+  ['mod-site']: { json: string | null; html: string | null } | null;
   asset: [number, string][] | null;
   ['fw-releases']:
     | {
@@ -61,9 +66,7 @@ export interface ErrorReportingState {
 }
 
 export interface IElectronAPI {
-  onGuiLogEvents: (
-    cb: (events: GuiLogEvent[], backlog: boolean) => void
-  ) => () => void;
+  onGuiLogEvents: (cb: (events: GuiLogEvent[], backlog: boolean) => void) => () => void;
   guiLogFiles: () => Promise<GuiLogFile[]>;
   readGuiLogFile: (name: string) => Promise<Uint8Array | null>;
   onCrowdinPopupClosed: (cb: () => void) => () => void;

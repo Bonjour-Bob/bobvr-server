@@ -9,13 +9,14 @@
     'n c' calc(100% - var(--topbar-h))
     / var(--navbar-w) calc(100% - var(--navbar-w));
 
+  // BOBvr: everything on the left (menu then side panel), trackers in the middle
   &.full {
     grid-template:
       't t t' var(--topbar-h)
-      'n b s' var(--toolbar-h)
-      'n c s' calc(100% - var(--topbar-h) - var(--toolbar-h))
-      / var(--navbar-w) calc(100% - var(--navbar-w) - var(--right-section-w))
-      var(--right-section-w);
+      'n s b' var(--toolbar-h)
+      'n s c' calc(100% - var(--topbar-h) - var(--toolbar-h))
+      / var(--navbar-w) var(--right-section-w)
+      calc(100% - var(--navbar-w) - var(--right-section-w));
   }
 
   @screen nsm {

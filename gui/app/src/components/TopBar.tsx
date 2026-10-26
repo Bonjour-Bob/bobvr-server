@@ -15,7 +15,7 @@ import { ProgressBar } from './commons/ProgressBar';
 import { Tooltip } from './commons/Tooltip';
 import { Typography } from './commons/Typography';
 import { DownloadIcon } from './commons/icon/DownloadIcon';
-import { DOCS_SITE, GH_REPO, VersionContext } from '@/App';
+import { GH_REPO, VersionContext } from '@/App';
 import classNames from 'classnames';
 import { QuestionIcon } from './commons/icon/QuestionIcon';
 import { IconButton } from './commons/IconButton';
@@ -31,6 +31,8 @@ import { connectedIMUTrackersAtom } from '@/store/app-store';
 import { useElectron } from '@/hooks/electron';
 import { openUrl } from '@/hooks/crossplatform';
 import { ProfileQuickSwitch } from './ProfileQuickSwitch';
+import { MOD_VERSION } from '@/mod-version';
+import { ModChangelogModal } from './ModChangelogModal';
 
 // Title bar buttons share one round hit target.
 const TITLE_BAR_BUTTON_CLASS =
@@ -49,27 +51,26 @@ function TitleBarButton({
 }
 
 export function VersionTag() {
-  const url = `https://github.com/${GH_REPO}/releases`;
-
+  // BOBvr: the mod's name instead of the version number (shown on hover)
   return (
     <Tooltip
       preferedDirection="bottom"
-      content={<span className="text-xs">{__COMMIT_HASH__}</span>}
+      content={
+        <span className="text-xs">
+          {(__VERSION_TAG__ || __COMMIT_HASH__) +
+            (__GIT_CLEAN__ ? '' : '-dirty')}
+        </span>
+      }
     >
-      <a
-        href={url}
+      <div
         className={classNames(
           'flex justify-around flex-col text-standard-bold',
           'text-status-success bg-status-success bg-opacity-20 rounded-lg',
-          'px-3 select-text cursor-pointer shrink-0 whitespace-nowrap'
+          'px-3 select-text shrink-0 whitespace-nowrap'
         )}
-        onClick={(e) => {
-          e.preventDefault();
-          openUrl(url);
-        }}
       >
-        {(__VERSION_TAG__ || __COMMIT_HASH__) + (__GIT_CLEAN__ ? '' : '-dirty')}
-      </a>
+        BOBvr-Beta v{MOD_VERSION} by Bonjour-
+      </div>
     </Tooltip>
   );
 }
@@ -95,6 +96,8 @@ export function TopBar({
   const [showConnectedTrackersWarning, setConnectedTrackerWarning] =
     useState(false);
   const [showTrayOrExitModal, setShowTrayOrExitModal] = useState(false);
+  // BOBvr: the « ? » button shows what's new in the mod
+  const [showChangelog, setShowChangelog] = useState(false);
   const doesMatchSettings = useMatch({
     path: '/settings/*',
   });
@@ -235,14 +238,28 @@ export function TopBar({
             </TitleBarButton>
 
             {!isMobile && (
-              <TitleBarButton
-                labelId="titlebar-docs"
-                className="stroke-window-icon"
-                onClick={() => openUrl(DOCS_SITE)}
+              // BOBvr: « Mise à jour » under the question mark
+              <div
+                className="flex flex-col items-center justify-center cursor-pointer group"
+                onClick={() => setShowChangelog(true)}
               >
-                <QuestionIcon />
-              </TitleBarButton>
+                <div
+                  className={classNames(
+                    'flex items-center justify-center stroke-window-icon',
+                    'group-hover:bg-background-60 rounded-full w-6 h-6'
+                  )}
+                >
+                  <QuestionIcon />
+                </div>
+                <span className="text-[9px] leading-none text-background-20 whitespace-nowrap">
+                  Mise à jour
+                </span>
+              </div>
             )}
+            <ModChangelogModal
+              isOpen={showChangelog}
+              onClose={() => setShowChangelog(false)}
+            />
             {electron.isElectron && (
               <>
                 <TitleBarButton

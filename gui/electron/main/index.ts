@@ -82,6 +82,9 @@ let mainWindow: BrowserWindow | null = null;
 // While the keybind recorder is open, F3/F5/F7/F12/Ctrl+R must reach the renderer as
 // ordinary keydowns instead of being eaten by hardenWindow's reload/devtools guards below,
 // otherwise those keys can never be captured into a shortcut at all.
+// BOBvr: the mod's site (updates)
+const MOD_SITE = 'https://bonjour-bobvr.netlify.app';
+
 let recordingKeybind = false;
 handleIpc(IPC_CHANNELS.SET_KEYBIND_RECORDING, (e, recording) => {
   recordingKeybind = recording;
@@ -91,6 +94,22 @@ handleIpc(
   IPC_CHANNELS.GH_FETCH,
   async <T extends GHGet>(_e: unknown, options: T): Promise<GHReturn[T['type']]> => {
     switch (options.type) {
+      case 'mod-site': {
+        // version.json if the site has one, otherwise the home page
+        const text = (url: string) =>
+          fetch(`${url}?t=${Date.now()}`)
+            .then((res) => (res.ok ? res.text() : null))
+            .catch(() => null);
+        let json = await text(`${MOD_SITE}/version.json`);
+        // A site that answers every address with its page has no real version.json
+        try {
+          if (json) JSON.parse(json);
+        } catch {
+          json = null;
+        }
+        const html = json ? null : await text(MOD_SITE);
+        return { json, html } as GHReturn[T['type']];
+      }
       case 'fw-releases': {
         return fetch(
           'https://api.github.com/repos/SlimeVR/SlimeVR-Tracker-ESP/releases'
@@ -377,11 +396,15 @@ function createWindow() {
     movable: true,
     frame: false,
     roundedCorners: true,
+    // BOBvr: Bob's icon in the taskbar
+    icon: trayIcon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
       contextIsolation: true,
       devTools: true,
+      // BOBvr: the startup music plays without a click
+      autoplayPolicy: 'no-user-gesture-required',
     },
   });
 
@@ -537,6 +560,8 @@ const spawnServer = async () => {
   const serverProcess = spawn(javaBin, serverArgs, {
     cwd: sharedDir,
     shell: false,
+    // Never show a console window for the Java server
+    windowsHide: true,
     env:
       platform === 'windows'
         ? {

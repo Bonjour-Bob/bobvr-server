@@ -78,6 +78,15 @@ function Error({ title, desc }: { title: string; desc: string }) {
   );
 }
 
+// BOBvr: Bob dancing on a black background while the app starts
+const STARTUP_VIDEO = '/videos/bob-danse.webm';
+
+function StartupVideo() {
+  return (
+    <video src={STARTUP_VIDEO} width={300} autoPlay loop muted playsInline />
+  );
+}
+
 export function ConnectionLost() {
   const { isFirstConnection, isConnected, timedOut } = useWebsocketAPI();
 
@@ -87,42 +96,44 @@ export function ConnectionLost() {
   const isTimedOut = isFirstConnection && timedOut;
 
   return (
-    <EmptyLayout>
-      <div className="flex flex-col w-full h-full p-4">
-        <div className="flex flex-grow justify-center items-center">
-          <div className="flex flex-col items-center gap-4 -mt-12">
-            {isLoading && (
-              <>
-                <LoaderIcon slimeState={SlimeState.JUMPY} size={200} />
-                <div>
-                  <Localized id="websocket-connecting">
-                    <Typography variant="main-title" />
-                  </Localized>
-                </div>
-              </>
-            )}
-            {isCrashed && (
-              <Error
-                title="websocket-connection_lost"
-                desc="websocket-connection_lost-desc"
-              />
-            )}
-            {isTimedOut && (
-              <Error
-                title="websocket-timedout"
-                desc="websocket-timedout-desc"
-              />
-            )}
+    <div className="h-full bg-black">
+      <EmptyLayout>
+        <div className="flex flex-col w-full h-full p-4">
+          <div className="flex flex-grow justify-center items-center">
+            <div className="flex flex-col items-center gap-4 -mt-12">
+              {isLoading && (
+                <>
+                  <StartupVideo />
+                  <div>
+                    <Localized id="websocket-connecting">
+                      <Typography variant="main-title" />
+                    </Localized>
+                  </div>
+                </>
+              )}
+              {isCrashed && (
+                <Error
+                  title="websocket-connection_lost"
+                  desc="websocket-connection_lost-desc"
+                />
+              )}
+              {isTimedOut && (
+                <Error
+                  title="websocket-timedout"
+                  desc="websocket-timedout-desc"
+                />
+              )}
+            </div>
           </div>
+          {(isCrashed || isTimedOut) && (
+            <div className="flex justify-center">
+              <CrashReportBanner
+                kind={isTimedOut ? 'timeout' : 'connection_lost'}
+              />
+            </div>
+          )}
         </div>
-        {(isCrashed || isTimedOut) && (
-          <div className="flex justify-center">
-            <CrashReportBanner
-              kind={isTimedOut ? 'timeout' : 'connection_lost'}
-            />
-          </div>
-        )}
-      </div>
-    </EmptyLayout>
+      </EmptyLayout>
+    </div>
   );
 }

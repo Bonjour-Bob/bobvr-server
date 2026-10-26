@@ -22,7 +22,8 @@ import { GearIcon } from './commons/icon/GearIcon';
 const MAINBUTTON_CLASSES = ({ disabled }: { disabled: boolean }) =>
   classNames(
     'relative overflow-clip',
-    'flex h-full items-center justify-center gap-2 px-4 bg-background-60 rounded-lg fill-background-10 aspect-square md:aspect-auto',
+    // BOBvr: icon above the text while the window is narrow
+    'flex h-full w-full items-center justify-center gap-1 xl:gap-2 px-1 xl:px-4 flex-col xl:flex-row bg-background-60 rounded-lg fill-background-10 aspect-square md:aspect-auto',
     {
       'cursor-pointer hover:bg-background-50 bg-background-60': !disabled,
       'cursor-not-allowed bg-background-70 brightness-75': disabled,
@@ -140,7 +141,7 @@ function BasicResetButton({
           </div>
 
           <div
-            className={classNames('hidden md:block relative', {
+            className={classNames('hidden md:block relative leading-tight', {
               'opacity-0': status === 'counting',
             })}
           >
@@ -211,15 +212,23 @@ export function Toolbar() {
   return (
     <>
       <div className="flex mobile:py-2 flex-col items-center bg-background-70 rounded-t-lg h-[var(--toolbar-h)] mr-2 xs:mt-2 mobile:mr-0">
-        <div className="px-3 py-3 w-full flex gap-4 justify-center md:justify-start">
-          <div className="flex-col flex gap-1 md:w-[60%]">
+        <div className="px-3 py-3 w-full flex gap-3 xl:gap-4 justify-center md:justify-start">
+          {/* BOBvr: both groups share the width by their number of buttons, so
+              everything fits in a window */}
+          <div
+            className="flex-col flex gap-1 min-w-0"
+            style={{ flex: '2 1 0' }}
+          >
             <Typography variant="section-title" id="toolbar-drift_reset" />
             <div className="gap-2 md:h-[72px] h-[62px] w-full grid-cols-2 grid">
               <BasicResetButton type={ResetType.FULL} />
               <BasicResetButton type={ResetType.YAW} />
             </div>
           </div>
-          <div className="flex-col flex gap-1 md:flex-grow">
+          <div
+            className="flex-col flex gap-1 min-w-0"
+            style={{ flex: `${2 + visibleGroups} 1 0` }}
+          >
             <div className="flex justify-between gap-2">
               <Typography
                 variant="section-title"
