@@ -1,6 +1,8 @@
 import {
   Box3,
+  CanvasTexture,
   Color,
+  Euler,
   Mesh,
   MeshStandardMaterial,
   Object3D,
@@ -8,6 +10,7 @@ import {
   Vector3,
 } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { DecalGeometry } from 'three/examples/jsm/geometries/DecalGeometry';
 import { SkeletonRenderPart } from './skeletonHelper';
 import { BodyPart, BoneT } from 'solarxr-protocol';
 import { QuaternionFromQuatT } from '@/maths/quaternion';
@@ -23,6 +26,64 @@ import { SkeletonProportions, deriveSkeletonProportions } from './skeletonPropor
 
 // BOBvr: light wood, like an artist's wooden mannequin
 const MOD_WOOD = new Color('#e8c9a0');
+
+// BOBvr: two dots and a wide smile, drawn once
+let modFaceTexture: CanvasTexture | null = null;
+function getModFaceTexture(): CanvasTexture {
+  if (modFaceTexture) return modFaceTexture;
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 192;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = '#1a1a1a';
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 10;
+    for (const x of [92, 164]) {
+      ctx.beginPath();
+      ctx.arc(x, 62, 9, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.arc(128, 56, 80, Math.PI * 0.18, Math.PI * 0.82);
+    ctx.stroke();
+  }
+  modFaceTexture = new CanvasTexture(canvas);
+  return modFaceTexture;
+}
+
+// The head model faces -Z in its own space (its node is turned 180 deg in the
+// scene). It can be a group of meshes, each gets its part of the face.
+function addModFace(head: Object3D) {
+  head.updateMatrixWorld(true);
+  const meshes: Mesh[] = [];
+  head.traverse((child) => {
+    if (child instanceof Mesh) meshes.push(child);
+  });
+  for (const mesh of meshes) {
+    const geometry = new DecalGeometry(
+      mesh,
+      new Vector3(0, 0.02, -0.13),
+      new Euler(0, Math.PI, 0),
+      new Vector3(0.12, 0.09, 0.2)
+    );
+    const decal = new Mesh(
+      geometry,
+      new MeshStandardMaterial({
+        map: getModFaceTexture(),
+        transparent: true,
+        roughness: 0.6,
+        polygonOffset: true,
+        polygonOffsetFactor: -4,
+      })
+    );
+    // DecalGeometry is in world space, the decal hangs under the mesh
+    decal.matrixAutoUpdate = false;
+    decal.matrix.copy(mesh.matrixWorld).invert();
+    mesh.add(decal);
+  }
+}
 
 const position = new Vector3();
 const quat = new Quaternion();
@@ -143,7 +204,7 @@ export class BasedSkeletonMeshHelper extends Object3D {
             }
           }
 
-          for (const [_, attached] of partsByAddr[addr] ?? []) {
+          for (const [part, attached] of partsByAddr[addr] ?? []) {
             const o = og.clone(true);
             // BOBvr: wooden mannequin (plain wood, no purple joints)
             o.traverse((child) => {
@@ -171,6 +232,8 @@ export class BasedSkeletonMeshHelper extends Object3D {
 
             attached.bounds = modelBox.clone();
             attached.tilt.clear();
+            // BOBvr: smiley face on the front of the head
+            if (part.bone.bodyPart === BodyPart.HEAD) addModFace(o);
             attached.tilt.add(o);
           }
         });
