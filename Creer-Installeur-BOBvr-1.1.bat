@@ -68,8 +68,14 @@ if not exist "%BM%" mkdir "%BM%"
 echo.
 echo [5/8] Java embarque dans l'installeur...
 if exist "%BM%\jre" rmdir /s /q "%BM%\jre"
-"%JAVA_HOME%\bin\jlink.exe" --add-modules ALL-MODULE-PATH --strip-debug --no-header-files --no-man-pages --output "%BM%\jre" >nul 2>&1
+"%JAVA_HOME%\bin\jlink.exe" --add-modules ALL-MODULE-PATH --strip-debug --no-header-files --no-man-pages --output "%BM%\jre"
+if exist "%BM%\jre\bin\java.exe" goto :jreok
+rem jlink ne marche pas avec ce Java : on copie Java en entier (plus gros, meme resultat)
+echo jlink indisponible, copie complete de Java...
+if exist "%BM%\jre" rmdir /s /q "%BM%\jre"
+xcopy "%JAVA_HOME%" "%BM%\jre\" /e /i /q /y >nul
 if not exist "%BM%\jre\bin\java.exe" goto :err
+:jreok
 
 echo.
 echo [6/8] Liaisons SteamVR (prises dans SlimeVR v22 rc.2 officiel)...
