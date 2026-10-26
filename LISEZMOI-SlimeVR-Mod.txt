@@ -1,0 +1,24 @@
+SlimeVR Mod - installation sur un autre PC
+==========================================
+
+Contenu du dossier
+  SlimeVR-Mod-Installeur.exe : installe SlimeVR Mod (Java et pilote SteamVR inclus).
+
+Avant d'installer
+  - Installe Steam et SteamVR sur ce PC (le pilote SlimeVR s'enregistre aupres de SteamVR).
+  - Ferme SteamVR et SlimeVR s'ils sont ouverts.
+
+Installation
+  1. Double-clique sur SlimeVR-Mod-Installeur.exe.
+  2. Si Windows affiche "Windows a protege votre ordinateur" :
+     clique sur "Informations complementaires" puis "Executer quand meme"
+     (l'installeur n'est pas signe numeriquement, c'est normal pour une version maison).
+  3. Suis les etapes. Un raccourci "SlimeVR Mod" est cree sur le Bureau.
+
+Premier lancement
+  - Si le pare-feu Windows demande l'autorisation pour Java / SlimeVR, accepte
+    (reseaux prives), sinon les trackers ne pourront pas se connecter.
+  - Les trackers doivent etre sur le meme reseau Wi-Fi que ce PC.
+
+Desinstaller
+  Parametres Windows > Applications > SlimeVR Mod > Desinstaller.

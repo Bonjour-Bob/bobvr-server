@@ -1,0 +1,63 @@
+# BOBvr: Windows installer of SlimeVR Mod (separate from official SlimeVR).
+# Same appId as before: installing over an older SlimeVR Mod updates it and
+# keeps the settings (in %APPDATA%\dev.slimevr.SlimeVR).
+appId: dev.slimevr.SlimeVR.mod
+productName: SlimeVR Mod
+executableName: SlimeVR Mod
+
+directories:
+  output: dist/mod
+
+asar: true
+asarUnpack:
+  # JavaVersion.jar is spawned as an external `java -jar` process
+  - resources/java-version/*.jar
+
+electronLanguages:
+  - en-US
+
+files:
+  - out/**/*
+  - resources/**/*
+  - package.json
+  - node_modules/**
+  - "!node_modules/*/{README,readme,README.md,readme.md,CHANGELOG,CHANGELOG.md,changelog.md}"
+  - "!node_modules/*/{test,tests,__tests__,docs,doc,example,examples}"
+  - "!node_modules/*/.{git,github,vscode,editorconfig,eslintrc,prettierrc}"
+  - "!node_modules/**/*.{map,ts,tsx,d.ts}"
+  - "!**/.DS_Store"
+
+win:
+  target: nsis
+  icon: "./resources/icons/icon.ico"
+  extraFiles:
+    - from: "../../server/desktop/build/libs/slimevr.jar"
+      to: "."
+    - from: "../../server/core/resources"
+      to: "."
+      filter: ["**/*"]
+    # SteamVR bindings provider, taken from the official release zip
+    - from: "./build-mod/bindings/SlimeVR-Bindings-Provider.exe"
+      to: "."
+    - from: "./build-mod/bindings/openvr_api.dll"
+      to: "."
+    # Embedded Java, nothing to install on another PC
+    - from: "./build-mod/jre"
+      to: "jre"
+    # Registers SlimeVR Mod as a SteamVR app (starts with SteamVR)
+    - from: "./resources/steamvr-autostart.ps1"
+      to: "steamvr-autostart.ps1"
+    # SteamVR driver, registered with SteamVR at install
+    - from: "./build-mod/slimevr-openvr-driver-win64"
+      to: "slimevr-openvr-driver-win64"
+
+nsis:
+  artifactName: "SlimeVR-Mod-Installeur.${ext}"
+  deleteAppDataOnUninstall: false
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: "SlimeVR Mod"
+  include: "./resources/installer-mod.nsh"

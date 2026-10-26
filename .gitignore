@@ -64,3 +64,4 @@ vrconfig.yml.tmp
 # Fuck claude
 .claude
 app/public/videos/bob-danse.webm
+gui/electron/build-mod/
