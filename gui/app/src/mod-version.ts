@@ -2,7 +2,7 @@
 // Grosse mise a jour : +0.1 (0.7 -> 0.8), major: true.
 // Petite mise a jour (correctif, petit reglage) : +0.0.1 (0.7 -> 0.7.1).
 // Ajouter les nouveautes en haut de MOD_CHANGELOG a chaque fois.
-export const MOD_VERSION = '1.1.1';
+export const MOD_VERSION = '1.1';
 
 export type ModChangelogEntry = {
   version: string;
@@ -12,12 +12,6 @@ export type ModChangelogEntry = {
 
 export const MOD_CHANGELOG: ModChangelogEntry[] = [
   {
-    version: '1.1.1',
-    changes: [
-      'Bob qui danse à la place des slimes partout (aucun capteur connecté, chargement, etc.).',
-    ],
-  },
-  {
     version: '1.1',
     major: true,
     changes: [
@@ -25,7 +19,7 @@ export const MOD_CHANGELOG: ModChangelogEntry[] = [
       'Profils Normal, Danse et Origine (boutons à gauche du squelette ou en haut à droite). Origine = SlimeVR de base, sans les corrections du mod.',
       'Toutes les corrections du mod refaites pour la nouvelle base : genoux qui ne suivent pas les grands mouvements de hanches, dos assis (on peut toujours se pencher), assis sur les talons, rien de bloqué allongé, glisse après un raté du Wi-Fi, signal aux capteurs 10 fois par seconde.',
       'Les pieds ne sont jamais bloqués au sol allongé ou un genou par terre.',
-      'Bob qui danse à la place du slime quand aucun capteur n’est connecté (accueil et attribution des capteurs).',
+      'Bob qui danse à la place des slimes partout (aucun capteur connecté, chargement, etc.).',
       'Logo et musique de Bob, thème noir et blanc, alerte de mise à jour du site, « ? » des nouveautés, installeur et lancement avec SteamVR.',
       'Retirés : le mode 5 capteurs (torse estimé) et le kit chevilles + coudes.',
     ],

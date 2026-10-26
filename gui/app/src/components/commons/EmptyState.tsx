@@ -1,12 +1,14 @@
 import classNames from 'classnames';
 import { ReactNode } from 'react';
-import { SlimeState } from './icon/LoaderIcon';
+import { LoaderIcon, SlimeState } from './icon/LoaderIcon';
 import { Typography } from './Typography';
 
 /** Slime, a title and a line of guidance for a panel with nothing in it */
 export function EmptyState({
-  iconSize = 85,
+  slimeState,
+  iconSize,
   glow = false,
+  lowPriority = false,
   titleId,
   titleColor,
   descriptionId,
@@ -26,17 +28,11 @@ export function EmptyState({
   action?: ReactNode;
   className?: string;
 }) {
-  // BOBvr: Bob dancing instead of the slime (the video's black becomes transparent)
   const icon = (
-    <video
-      src="/videos/bob-danse.webm"
-      width={iconSize}
-      height={iconSize}
-      className="object-contain mix-blend-lighten"
-      autoPlay
-      loop
-      muted
-      playsInline
+    <LoaderIcon
+      slimeState={slimeState}
+      size={iconSize}
+      lowPriority={lowPriority}
     />
   );
 
