@@ -1,0 +1,657 @@
+import { LogSource } from 'solarxr-protocol';
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  Menu,
+  nativeImage,
+  net,
+  protocol,
+  screen,
+  shell,
+  Tray,
+} from 'electron';
+import { GHGet, GHReturn, IPC_CHANNELS } from '@slimevr/gui-shared';
+import path, { dirname, join } from 'path';
+import trayIcon from '../resources/icons/icon.png?asset';
+import appleTrayIcon from '../resources/icons/Square30x30Logo.png?asset';
+import { readFile, stat } from 'fs/promises';
+import { pathToFileURL } from 'node:url';
+import { getPlatform, handleIpc, isPortAvailable } from './utils';
+import { CROWDIN_URL, getAppUrl, isAppUrl, openExternalUrl } from './urls';
+import {
+  findServerJar,
+  findSystemJRE,
+  getExeFolder,
+  getGuiDataFolder,
+  getLogsFolder,
+  getServerDataFolder,
+  getWindowStateFile,
+} from './paths';
+import { initStores } from './store';
+import { closeLogger, logger, rendererLogger, subscribeGuiLogs } from './logger';
+import { listLogFiles } from './log-files';
+
+import { spawn } from 'node:child_process';
+import { discordPresence } from './presence';
+import { options } from './cli';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { MenuItem } from 'electron/main';
+import { openCrowdinPopup } from './crowdin';
+import {
+  applyErrorReporting,
+  captureJavaNotFound,
+  captureServerExit,
+  captureServerLaunchError,
+  flushErrorReports,
+  initSentry,
+  sendCrashReport,
+  trackServerOutput,
+} from './sentry';
+
+type Stores = Awaited<ReturnType<typeof initStores>>;
+let stores: Stores;
+
+// Fixes colors looking washed on linux
+// Might affect hdr
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('disable-features', 'WaylandWpColorManagerV1');
+  app.commandLine.appendSwitch('force-color-profile', 'srgb');
+}
+
+app.setPath('userData', getGuiDataFolder());
+app.setPath('sessionData', join(getGuiDataFolder(), 'electron'));
+
+initSentry(options.steam);
+
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'app',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true,
+    },
+  },
+]);
+
+let mainWindow: BrowserWindow | null = null;
+
+// While the keybind recorder is open, F3/F5/F7/F12/Ctrl+R must reach the renderer as
+// ordinary keydowns instead of being eaten by hardenWindow's reload/devtools guards below,
+// otherwise those keys can never be captured into a shortcut at all.
+let recordingKeybind = false;
+handleIpc(IPC_CHANNELS.SET_KEYBIND_RECORDING, (e, recording) => {
+  recordingKeybind = recording;
+});
+
+handleIpc(
+  IPC_CHANNELS.GH_FETCH,
+  async <T extends GHGet>(_e: unknown, options: T): Promise<GHReturn[T['type']]> => {
+    switch (options.type) {
+      case 'fw-releases': {
+        return fetch(
+          'https://api.github.com/repos/SlimeVR/SlimeVR-Tracker-ESP/releases'
+        ).then((res) => res.json()) as Promise<GHReturn[T['type']]>;
+      }
+      case 'asset': {
+        if (
+          !options.url.startsWith(
+            'https://github.com/SlimeVR/SlimeVR-Tracker-ESP/releases/download'
+          )
+        )
+          return null;
+        return fetch(options.url).then((res) => res.json()) as Promise<
+          GHReturn[T['type']]
+        >;
+      }
+      default:
+        throw 'unhandled type';
+    }
+  }
+);
+
+handleIpc(IPC_CHANNELS.OS_STATS, async () => {
+  return {
+    type: getPlatform(),
+  };
+});
+
+handleIpc(IPC_CHANNELS.I18N_OVERRIDE, async () => {
+  const overridefile = join(getServerDataFolder(), 'override.ftl');
+  const exists = await stat(overridefile)
+    .then(() => true)
+    .catch(() => false);
+
+  if (!exists) return false;
+  return readFile(overridefile, { encoding: 'utf-8' });
+});
+
+handleIpc(IPC_CHANNELS.LOG, (e, type, ...args) => {
+  let payload: Record<string, unknown> = {};
+  const messageParts: unknown[] = [];
+
+  args.forEach((arg) => {
+    if (arg instanceof Error) {
+      payload.err = arg;
+    } else if (typeof arg === 'object' && arg !== null) {
+      payload = { ...payload, ...arg };
+    } else {
+      messageParts.push(arg);
+    }
+  });
+
+  const msg = messageParts.join(' ');
+
+  switch (type) {
+    case 'error':
+      rendererLogger.error(payload, msg);
+      break;
+    case 'warn':
+      rendererLogger.warn(payload, msg);
+      break;
+    default:
+      rendererLogger.info(payload, msg);
+  }
+});
+
+handleIpc(IPC_CHANNELS.OPEN_URL, (e, url) => openExternalUrl(url));
+
+handleIpc(IPC_CHANNELS.STORAGE, async (e, { type, method, key, value }) => {
+  const store = stores[type];
+  if (!store) throw new Error(`Storage type ${type} not found`);
+
+  switch (method) {
+    case 'get':
+      return store.get(key!);
+    case 'set':
+      return store.set(key!, value);
+    case 'delete':
+      return store.delete(key!);
+    case 'save':
+      return store.save();
+  }
+});
+
+handleIpc(IPC_CHANNELS.DISCORD_PRESENCE, async (e, options) => {
+  if (options.enable) {
+    if (!discordPresence.state.ready) await discordPresence.connect();
+    discordPresence.updateActivity(options.activity, options.iconText);
+  } else if (discordPresence.state.ready) {
+    discordPresence.destroy();
+  }
+});
+
+handleIpc(IPC_CHANNELS.OPEN_FILE, (e, folder) => {
+  const requestedPath = path.resolve(folder);
+
+  const isAllowed = [getServerDataFolder(), getGuiDataFolder(), getLogsFolder()].some(
+    (parent) => {
+      const absoluteParent = path.resolve(parent);
+      const relative = path.relative(absoluteParent, requestedPath);
+      return !relative.includes('..') && !path.isAbsolute(relative);
+    }
+  );
+
+  if (isAllowed) {
+    shell.openPath(requestedPath);
+  } else {
+    logger.error({ path: requestedPath }, 'Blocked unauthorized path');
+  }
+});
+
+handleIpc(IPC_CHANNELS.GUI_LOG_FILES, () =>
+  // Newest first, so the first one is the file being written to
+  listLogFiles(getLogsFolder()).map(({ name, size, modifiedMs }, index) => ({
+    source: LogSource.GUI,
+    name,
+    size,
+    modifiedMs,
+    current: index === 0,
+  }))
+);
+
+handleIpc(IPC_CHANNELS.READ_GUI_LOG_FILE, async (e, name) => {
+  const file = listLogFiles(getLogsFolder()).find((f) => f.name === name);
+  if (!file) return null;
+  return new Uint8Array(await readFile(file.path));
+});
+
+const guiLogSubscriptions = new Map<number, () => void>();
+
+const stopGuiLogs = (windowId: number) => {
+  guiLogSubscriptions.get(windowId)?.();
+  guiLogSubscriptions.delete(windowId);
+};
+
+handleIpc(IPC_CHANNELS.GUI_LOG_SUBSCRIBE, (e) => {
+  const sender = e.sender;
+  stopGuiLogs(sender.id);
+  guiLogSubscriptions.set(
+    sender.id,
+    subscribeGuiLogs((events, backlog) => {
+      if (sender.isDestroyed()) {
+        stopGuiLogs(sender.id);
+        return;
+      }
+      sender.send(IPC_CHANNELS.GUI_LOG_EVENTS, events, backlog);
+    })
+  );
+});
+
+handleIpc(IPC_CHANNELS.GUI_LOG_UNSUBSCRIBE, (e) => stopGuiLogs(e.sender.id));
+
+handleIpc(IPC_CHANNELS.GET_FOLDER, (e, folder) => {
+  switch (folder) {
+    case 'config':
+      return getGuiDataFolder();
+    case 'logs':
+      return getLogsFolder();
+    case 'exe':
+      return getExeFolder();
+  }
+});
+
+handleIpc(IPC_CHANNELS.IS_STEAM, () => {
+  return options.steam;
+});
+
+handleIpc(IPC_CHANNELS.SET_ERROR_REPORTING, (e, state) => {
+  applyErrorReporting(state);
+});
+
+handleIpc(IPC_CHANNELS.SEND_CRASH_REPORT, (e, kind) => sendCrashReport(kind));
+
+const defaultWindowState: {
+  width: number;
+  height: number;
+  x?: number;
+  y?: number;
+} = {
+  width: 1289.0,
+  height: 709.0,
+  x: undefined,
+  y: undefined,
+};
+
+const windowState = await readFile(getWindowStateFile(), {
+  encoding: 'utf-8',
+})
+  .then((data) => JSON.parse(data))
+  .catch(() => {
+    logger.error('Failed to load window state, using defaults');
+    return defaultWindowState;
+  });
+
+const MIN_WIDTH = 393;
+const MIN_HEIGHT = 667;
+
+function validateWindowState(state: typeof defaultWindowState) {
+  if (state.x === undefined || state.y === undefined) {
+    return state;
+  }
+
+  const displays = screen.getAllDisplays();
+
+  const isVisible = displays.some((display) => {
+    return (
+      state.x! >= display.bounds.x &&
+      state.y! >= display.bounds.y &&
+      state.x! + state.width <= display.bounds.x + display.bounds.width &&
+      state.y! + state.height <= display.bounds.y + display.bounds.height
+    );
+  });
+
+  const minWidth = MIN_WIDTH;
+  const minHeight = MIN_HEIGHT;
+
+  if (!isVisible || state.width < minWidth || state.height < minHeight) {
+    return defaultWindowState;
+  }
+
+  return state;
+}
+
+const saveWindowState = async () => {
+  await mkdir(dirname(getWindowStateFile()), { recursive: true });
+  await writeFile(getWindowStateFile(), JSON.stringify(windowState), {
+    encoding: 'utf-8',
+  });
+};
+
+/**
+ * The renderer is our whole UI, not a web page: it should not spawn a second
+ * window, reload, or fire Chromium's page shortcuts. Shut that off here so the
+ * renderer never has to fight the browser. Dev tools stay reachable.
+ */
+function hardenWindow(win: BrowserWindow) {
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    openExternalUrl(url);
+    return { action: 'deny' };
+  });
+
+  win.webContents.on('will-navigate', (event, url) => {
+    if (isAppUrl(url)) return;
+
+    event.preventDefault();
+    if (CROWDIN_URL.test(url)) openCrowdinPopup(win, url);
+    else openExternalUrl(url);
+  });
+
+  const devMode = !!process.env.ELECTRON_RENDERER_URL;
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return;
+    if (recordingKeybind) return;
+    const key = input.key.toLowerCase();
+    const mod = input.control || input.meta;
+
+    // Ctrl/Cmd+Shift+I, Cmd+Alt+I, F12 -> dev tools.
+    if (key === 'f12' || (key === 'i' && mod && (input.shift || input.alt))) {
+      event.preventDefault();
+      win.webContents.toggleDevTools();
+      return;
+    }
+
+    const blocked =
+      (input.alt && key === 'enter') || // "save page" / properties
+      key === 'f3' || // find next
+      key === 'f7' || // caret browsing
+      (!devMode && (key === 'f5' || (mod && key === 'r')));
+
+    if (blocked) event.preventDefault();
+  });
+}
+
+function createWindow() {
+  const validatedState = validateWindowState(windowState);
+
+  mainWindow = new BrowserWindow({
+    width: validatedState.width,
+    height: validatedState.height,
+    x: validatedState.x,
+    y: validatedState.y,
+    minHeight: MIN_HEIGHT,
+    minWidth: MIN_WIDTH,
+    movable: true,
+    frame: false,
+    roundedCorners: true,
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      devTools: true,
+    },
+  });
+
+  hardenWindow(mainWindow);
+
+  mainWindow.loadURL(getAppUrl());
+  if (process.env.ELECTRON_RENDERER_URL) {
+    mainWindow.webContents.openDevTools();
+  }
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+
+  handleIpc('window-actions', (e, action) => {
+    if (mainWindow === null) return;
+    switch (action) {
+      case 'close':
+        mainWindow.close();
+        break;
+      case 'hide':
+        mainWindow.hide();
+        break;
+      case 'minimize':
+        mainWindow.minimize();
+        break;
+      case 'toggle-maximize':
+        if (mainWindow.isMaximized()) mainWindow.unmaximize();
+        else mainWindow.maximize();
+        break;
+    }
+  });
+
+  handleIpc('open-dialog', (e, options) => dialog.showOpenDialog(options));
+  handleIpc('save-dialog', (e, options) => dialog.showSaveDialog(options));
+
+  const icon = nativeImage.createFromPath(
+    getPlatform() === 'macos' ? appleTrayIcon : trayIcon
+  );
+  const tray = new Tray(icon);
+  tray.setToolTip('SlimeVR');
+  tray.on('click', () => {
+    mainWindow?.show();
+  });
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Show',
+      click: () => {
+        mainWindow?.show();
+      },
+    },
+    {
+      label: 'Hide',
+      click: () => {
+        mainWindow?.hide();
+      },
+    },
+    { role: 'quit' },
+  ]);
+  tray.setContextMenu(contextMenu);
+
+  const updateWindowState = () => {
+    if (!mainWindow) return;
+
+    windowState.minimized = mainWindow.isMinimized();
+    if (!mainWindow.isMinimized() && !mainWindow.isMaximized()) {
+      const bounds = mainWindow.getBounds();
+      windowState.width = bounds.width;
+      windowState.height = bounds.height;
+      windowState.x = bounds.x;
+      windowState.y = bounds.y;
+    }
+  };
+
+  mainWindow.on('move', updateWindowState);
+  mainWindow.on('resize', updateWindowState);
+  mainWindow.on('minimize', updateWindowState);
+  mainWindow.on('maximize', updateWindowState);
+
+  mainWindow.webContents.on('context-menu', (event, params) => {
+    const menu = new Menu();
+
+    menu.append(
+      new MenuItem({
+        label: 'Inspect Element',
+        click: () => {
+          mainWindow?.webContents.inspectElement(params.x, params.y);
+        },
+      })
+    );
+
+    menu.append(new MenuItem({ type: 'separator' }));
+    menu.append(new MenuItem({ label: 'Copy', role: 'copy' }));
+    menu.append(new MenuItem({ label: 'Paste', role: 'paste' }));
+
+    if (mainWindow) menu.popup({ window: mainWindow });
+  });
+}
+
+const checkEnvironmentVariables = () => {
+  const disallowedVars = ['_JAVA_OPTIONS', 'JAVA_TOOL_OPTIONS'];
+
+  const set = disallowedVars.filter((env) => !!process.env[env]);
+  if (set.length > 0) {
+    dialog.showErrorBox(
+      'SlimeVR',
+      `You have environment variables ${set.join(', ')} set, which may cause the SlimeVR Server to fail to launch properly.`
+    );
+    app.quit();
+  }
+};
+
+const isServerRunning = async () => !(await isPortAvailable(21110));
+
+const SERVER_OUTPUT_TAIL_LINES = 200;
+
+const spawnServer = async () => {
+  if (options.skipServerIfRunning && (await isServerRunning())) {
+    logger.info(
+      { skipServerIfRunning: options.skipServerIfRunning },
+      'Server is already running, skipping server start'
+    );
+    return;
+  }
+
+  const serverJar = findServerJar();
+  if (!serverJar) {
+    logger.info('server jar not found, skipping');
+    return;
+  }
+  const sharedDir = dirname(serverJar);
+  const javaBin = await findSystemJRE(sharedDir);
+  if (!javaBin) {
+    captureJavaNotFound();
+    dialog.showErrorBox(
+      'SlimeVR',
+      'Unable to find a compatible Java version, Make sure to use the latest SlimeVR installer. Or install java 25 or higher'
+    );
+    app.quit();
+    return;
+  }
+
+  logger.info({ javaBin, serverJar }, 'Found Java and server jar');
+  const platform = getPlatform();
+
+  const serverArgs = ['-Xmx128M', '-jar', serverJar];
+  if (options.steam) serverArgs.push('--steam');
+  if (options.install) serverArgs.push('--install');
+  if (options.noUdev) serverArgs.push('--no-udev');
+
+  serverArgs.push('run');
+
+  const serverProcess = spawn(javaBin, serverArgs, {
+    cwd: sharedDir,
+    shell: false,
+    env:
+      platform === 'windows'
+        ? {
+            ...process.env,
+            APPDATA: app.getPath('appData'),
+            LOCALAPPDATA: process.env['USERPROFILE']
+              ? path.join(process.env['USERPROFILE'], 'AppData', 'Local')
+              : undefined,
+          }
+        : undefined,
+  });
+
+  const outputTail: string[] = [];
+  const keepOutput = (message: string) => {
+    outputTail.push(...message.split('\n').filter((line) => line.length > 0));
+    outputTail.splice(0, Math.max(0, outputTail.length - SERVER_OUTPUT_TAIL_LINES));
+  };
+  trackServerOutput(() => outputTail.join('\n'));
+
+  serverProcess.stdout?.on('data', (message) => keepOutput(message.toString()));
+  serverProcess.stderr?.on('data', (message) => keepOutput(message.toString()));
+
+  serverProcess.on('error', (err) => {
+    logger.info({ err }, 'Error launching the java server');
+    captureServerLaunchError(err);
+    if (!isQuitting) app.quit();
+  });
+
+  serverProcess.on('exit', (code, signal) => {
+    logger.info({ code, signal }, 'Server process exiting');
+    if (!isQuitting && (code !== 0 || signal !== null)) {
+      captureServerExit(code, signal, outputTail.join('\n'));
+    }
+  });
+
+  const exited = new Promise<void>((resolve) => serverProcess.once('exit', resolve));
+
+  return {
+    process: serverProcess,
+    close: () => serverProcess.kill(),
+    waitForExit: () => exited,
+  };
+};
+
+const createFolders = async () => {
+  await mkdir(getServerDataFolder(), { recursive: true });
+  await mkdir(getGuiDataFolder(), { recursive: true });
+};
+
+let isQuitting = false;
+
+app.whenReady().then(async () => {
+  protocol.handle('app', async (request) => {
+    const { pathname } = new URL(request.url);
+    const filePath = path.normalize(join(__dirname, '../renderer', pathname));
+    const response = await net.fetch(pathToFileURL(filePath).toString(), {
+      headers: request.headers,
+    });
+    if (!filePath.endsWith('.html')) return response;
+
+    // Needed by Sentry browser profiling
+    const headers = new Headers(response.headers);
+    headers.set('Document-Policy', 'js-profiling');
+    return new Response(response.body, { status: response.status, headers });
+  });
+
+  try {
+    await createFolders();
+  } catch (err) {
+    logger.error(err, 'Failed to initialize stores');
+    dialog.showErrorBox(
+      'SlimeVR',
+      'Failed to initialize application storage. Please make sure the application has write permissions to its data folder.'
+    );
+    app.quit();
+    return;
+  }
+
+  stores = await initStores();
+  checkEnvironmentVariables();
+  const server = await spawnServer();
+
+  // No app menu on Windows/Linux (the frame is custom and every default
+  // accelerator is unwanted). macOS keeps a minimal one so Cmd+C/V/Q work.
+  Menu.setApplicationMenu(
+    getPlatform() === 'macos'
+      ? Menu.buildFromTemplate([
+          { role: 'appMenu' },
+          { role: 'editMenu' },
+          { role: 'windowMenu' },
+        ])
+      : null
+  );
+
+  createWindow();
+
+  logger.info('SlimeVR started!');
+
+  app.on('window-all-closed', () => {
+    app.quit();
+  });
+
+  app.on('before-quit', async (event) => {
+    if (isQuitting) return;
+    isQuitting = true;
+    event.preventDefault();
+    logger.info('App quitting, saving...');
+    server?.close();
+    await server?.waitForExit();
+    await stores.settings.save();
+    await stores.cache.save();
+    discordPresence.destroy();
+    await saveWindowState();
+    await flushErrorReports();
+    await closeLogger();
+    app.exit(0);
+  });
+});
