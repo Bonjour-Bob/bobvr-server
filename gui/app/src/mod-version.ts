@@ -25,6 +25,7 @@ export const MOD_CHANGELOG: ModChangelogEntry[] = [
       'Profils Normal, Danse et Origine (boutons à gauche du squelette ou en haut à droite). Origine = SlimeVR de base, sans les corrections du mod.',
       'Toutes les corrections du mod refaites pour la nouvelle base : genoux qui ne suivent pas les grands mouvements de hanches, dos assis (on peut toujours se pencher), assis sur les talons, rien de bloqué allongé, glisse après un raté du Wi-Fi, signal aux capteurs 10 fois par seconde.',
       'Les pieds ne sont jamais bloqués au sol allongé ou un genou par terre.',
+      'Bob qui danse à la place du slime quand aucun capteur n’est connecté (accueil et attribution des capteurs).',
       'Logo et musique de Bob, thème noir et blanc, alerte de mise à jour du site, « ? » des nouveautés, installeur et lancement avec SteamVR.',
       'Retirés : le mode 5 capteurs (torse estimé) et le kit chevilles + coudes.',
     ],
