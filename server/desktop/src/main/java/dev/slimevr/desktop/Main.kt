@@ -133,6 +133,8 @@ fun main(args: Array<String>) = runBlocking<Unit>(appCoroutineExceptionHandler +
 	val configFolder = resolveConfigDirectory() ?: error("Unable to resolve config folder")
 	val storage = DesktopConfigStorage(configFolder.toFile())
 	val config = AppConfig.create(this, storage = storage)
+	// BOBvr: the Normal / Danse / Origine settings profiles
+	config.seedModProfiles()
 	val errorReporting = ErrorReportingManager.create(scope = this, globalConfig = config.globalConfig)
 	errorReporting.init(
 		dsn = SENTRY_DSN,

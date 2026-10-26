@@ -313,10 +313,7 @@ class AppConfig(
 				settings = settings,
 				devices = devices,
 				storage = storage,
-			).also {
-				it.refreshProfiles()
-				it.seedModProfiles()
-			}
+			).also { it.refreshProfiles() }
 		}
 	}
 }
