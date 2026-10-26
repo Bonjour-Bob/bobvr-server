@@ -178,6 +178,14 @@ private class TickTimings(private val hz: Int, private val window: Duration, pri
 	}
 }
 
+private fun BoneState.isFinite(): Boolean = rotation.w.isFinite() &&
+	rotation.x.isFinite() &&
+	rotation.y.isFinite() &&
+	rotation.z.isFinite() &&
+	tailPosition.x.isFinite() &&
+	tailPosition.y.isFinite() &&
+	tailPosition.z.isFinite()
+
 class ComputedSkeletonBehaviour(
 	val hz: Int,
 	val inputProcessors: List<SkeletonInputProcessor> = emptyList(),
@@ -339,7 +347,8 @@ class ComputedSkeletonBehaviour(
 						for (processor in ikComputedProcessors) processor.process(ikOutput.bones, boneInputs)
 
 						// Updated the computed skeleton with the result
-						receiver.computed.tryEmit(ikOutput.bones)
+						// BOBvr: a broken (NaN) pose makes a body part vanish in SteamVR, keep the last good one
+						if (ikOutput.bones.values.all { it.isFinite() }) receiver.computed.tryEmit(ikOutput.bones)
 					}
 
 					timings.finished(processTime)

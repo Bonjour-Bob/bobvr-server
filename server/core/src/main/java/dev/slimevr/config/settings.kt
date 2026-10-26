@@ -112,6 +112,8 @@ data class SkeletonTogglesConfig(
 	val mocapMode: Boolean = false,
 	val useTrackerPositions: Boolean = true,
 	val enforceConstraints: Boolean = true,
+	/** BOBvr: the mod's corrections. Not in SolarXR, set by the profiles (off in "Origine") */
+	val modCorrections: Boolean = true,
 )
 
 // Used in SkeletonConfig

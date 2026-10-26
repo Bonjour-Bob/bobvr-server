@@ -275,6 +275,27 @@ class AppConfig(
 		refreshProfiles()
 	}
 
+	/**
+	 * BOBvr: the mod's settings profiles. Created once if missing, from the active profile so the
+	 * other settings (trackers, keybinds...) are kept. The first time, BOBvr switches to "Normal".
+	 */
+	suspend fun seedModProfiles() {
+		val names = profileOperationNames()
+		val base = settings.context.state.value.data
+		var createdNormal = false
+		for (name in MOD_PROFILES) {
+			if (hasProfileNamed(names, name)) continue
+			val content = jsonConfig.encodeToString(modProfileSettings(name, base))
+			if (storage.write(pathOf(ProfileKind.SETTINGS, name), content, overwrite = false) && name == MOD_PROFILE_NORMAL) {
+				createdNormal = true
+			}
+		}
+		refreshProfiles()
+		if (createdNormal) switchProfile(ProfileKind.SETTINGS, MOD_PROFILE_NORMAL)
+	}
+
+	private suspend fun profileOperationNames() = profilesLock.withLock { listProfiles(ProfileKind.SETTINGS) }
+
 	// A profile named like the default in another case is the same file on case-insensitive filesystems
 	private suspend fun defaultProfileName(kind: ProfileKind, name: String): String = listProfiles(kind).firstOrNull { it.equals(name, ignoreCase = true) } ?: name
 
@@ -292,7 +313,10 @@ class AppConfig(
 				settings = settings,
 				devices = devices,
 				storage = storage,
-			).also { it.refreshProfiles() }
+			).also {
+				it.refreshProfiles()
+				it.seedModProfiles()
+			}
 		}
 	}
 }

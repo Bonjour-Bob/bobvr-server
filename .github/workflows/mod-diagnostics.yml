@@ -1,0 +1,71 @@
+# BOBvr : montre les erreurs de compilation / formatage / tests / lint comme
+# annotations (lisibles sans ouvrir les logs).
+name: BOBvr Diagnostics
+
+on:
+  push:
+    branches: [bobvr-1.1]
+  workflow_dispatch:
+
+jobs:
+  server:
+    name: Server compile + tests + spotless
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Compile
+        shell: bash
+        run: |
+          set +e
+          ./gradlew :server:desktop:shadowJar --console=plain > compile.log 2>&1
+          code=$?
+          grep -E '^e: |error:|What went wrong' -A2 compile.log | head -40 | while IFS= read -r line; do echo "::error::${line}"; done
+          exit $code
+      - name: Tests
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          ./gradlew :server:core:jvmTest --console=plain > test.log 2>&1
+          code=$?
+          grep -E 'FAILED|AssertionError|expected|What went wrong' -A3 test.log | head -60 | while IFS= read -r line; do echo "::error::${line}"; done
+          exit $code
+      - name: Spotless
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          ./gradlew spotlessApply --console=plain > spotless.log 2>&1
+          grep -E 'not able to resolve|What went wrong' -A2 spotless.log | while IFS= read -r line; do echo "::notice::${line}"; done
+          git diff --stat | while IFS= read -r line; do echo "::warning::${line}"; done
+          git diff -U0 | grep -E '^[-+@]' | grep -v '^+++\|^---' | head -60 | while IFS= read -r line; do echo "::warning::${line}"; done
+          git diff --quiet
+
+  gui:
+    name: GUI lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.node-version'
+          cache: 'pnpm'
+      - name: Lint
+        shell: bash
+        run: |
+          set +e
+          pnpm i > /dev/null 2>&1
+          pnpm run lint > lint.log 2>&1
+          code=$?
+          grep -E 'error|warning|\.tsx?:' lint.log | grep -v '^>' | head -50 | while IFS= read -r line; do echo "::error::${line}"; done
+          exit $code

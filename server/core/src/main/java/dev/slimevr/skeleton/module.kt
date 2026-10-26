@@ -13,6 +13,10 @@ import dev.slimevr.skeleton.inputprocessors.DirectLinkInputProcessor
 import dev.slimevr.skeleton.inputprocessors.FallbackInputProcessor
 import dev.slimevr.skeleton.inputprocessors.FingersInputProcessor
 import dev.slimevr.skeleton.inputprocessors.HeadPositionFallbackInputProcessor
+import dev.slimevr.skeleton.inputprocessors.ModGapGlideInputProcessor
+import dev.slimevr.skeleton.inputprocessors.ModHeelsInputProcessor
+import dev.slimevr.skeleton.inputprocessors.ModHipLegsInputProcessor
+import dev.slimevr.skeleton.inputprocessors.ModSittingBackInputProcessor
 import dev.slimevr.skeleton.inputprocessors.NeckInputProcessor
 import dev.slimevr.skeleton.inputprocessors.RotationPredictionInputProcessor
 import dev.slimevr.skeleton.inputprocessors.RotationSmoothingInputProcessor
@@ -274,6 +278,8 @@ class Skeleton(
 					waiter = waiter,
 					// Run before FK on the inputs
 					inputProcessors = listOf(
+						// BOBvr: glide after Wi-Fi hiccups, on the raw tracker data
+						ModGapGlideInputProcessor(settings),
 						UpsamplingInputProcessor(),
 						RotationPredictionInputProcessor(settings),
 						RotationSmoothingInputProcessor(settings),
@@ -282,6 +288,10 @@ class Skeleton(
 						FallbackInputProcessor(),
 						UpperLegsRollAlignInputProcessor(settings),
 						SpineInputProcessor(settings),
+						// BOBvr: sitting back, sitting on the heels, knees not dragged by the hips
+						ModSittingBackInputProcessor(settings),
+						ModHeelsInputProcessor(settings),
+						ModHipLegsInputProcessor(settings),
 						NeckInputProcessor(),
 						DirectLinkInputProcessor(),
 						FingersInputProcessor(),

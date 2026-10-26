@@ -138,6 +138,16 @@ class PingBehaviour : UDPConnectionBehaviour {
 			}
 		}
 
+		// BOBvr: a tracker that hears nothing from the server for ~3 s drops the connection and
+		// stops sending until it reconnects. A tiny heartbeat every 100 ms keeps it connected on a
+		// Wi-Fi that loses packets.
+		receiver.context.scope.launch {
+			while (isActive) {
+				if (receiver.context.state.value.didHandshake) receiver.send(Heartbeat)
+				delay(100.milliseconds)
+			}
+		}
+
 		// listen for the pong
 		receiver.packetEvents.onPacket<PingPong> { packet ->
 			val state = receiver.context.state.value

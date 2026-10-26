@@ -5,7 +5,6 @@ import dev.slimevr.config.SettingsActions
 import dev.slimevr.config.SkeletonConfig
 import dev.slimevr.config.SkeletonFilteringConfig
 import dev.slimevr.config.SkeletonRatiosConfig
-import dev.slimevr.config.SkeletonTogglesConfig
 import dev.slimevr.skeleton.SkeletonActions
 import dev.slimevr.solarxr.SolarXRBridge
 import dev.slimevr.solarxr.SolarXRBridgeBehaviour
@@ -72,7 +71,8 @@ class SkeletonSettingsBehaviour(
 					copy(
 						skeletonConfig = SkeletonConfig(
 							toggles = req.toggles?.let {
-								SkeletonTogglesConfig(
+								// BOBvr: copy() keeps modCorrections, which the GUI doesn't send
+								skeletonConfig.toggles.copy(
 									floorClip = it.floorClip == true,
 									skatingCorrection = it.skatingCorrection == true,
 									toeSnap = it.toeSnap == true,

@@ -11,6 +11,8 @@ import dev.slimevr.skeleton.Skeleton
 import dev.slimevr.skeleton.SkeletonTargetProcessor
 import dev.slimevr.skeleton.bodyPartMap
 import dev.slimevr.skeleton.centreOfMass
+import dev.slimevr.skeleton.inputprocessors.modNoFootLock
+import dev.slimevr.skeleton.parentOf
 import dev.slimevr.util.inFloatingSeconds
 import dev.slimevr.util.timeSource
 import io.github.axisangles.ktmath.Vector3
@@ -183,7 +185,9 @@ class SkatingCorrectionTargetProcessor(val settings: Settings, val skeleton: Ske
 			// Compute if the body part should be locked
 			val shouldLock = (noComLocked || comLock[bodyPart] == true) &&
 				floorLocked(lastState.locked, curPosition, floorLevel) &&
-				accelLocked(lastState.locked, bone.acceleration, accelerationThreshold)
+				accelLocked(lastState.locked, bone.acceleration, accelerationThreshold) &&
+				// BOBvr: never while lying or kneeling
+				parentOf(ikTargetBodyPart)?.let { modNoFootLock(settings, inputSkeleton, fk, floorLevel, it) } != true
 
 			// Update lock state
 			val activeState = computeLockState(
