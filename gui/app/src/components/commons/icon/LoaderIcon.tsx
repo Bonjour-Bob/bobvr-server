@@ -7,11 +7,13 @@ export enum SlimeState {
   CURIOUS,
 }
 
+// BOBvr: Bob dancing everywhere instead of the slimes
+const BOB_DANCE = { src: '/videos/bob-danse.webm' };
 const SLIME_ASSETS = {
-  [SlimeState.HAPPY]: { src: '/images/happy-slime.webm' },
-  [SlimeState.JUMPY]: { src: '/images/jumping-slime.webm' },
-  [SlimeState.SAD]: { src: '/images/sad-slime.webm' },
-  [SlimeState.CURIOUS]: { src: '/images/curious-slime.webm' },
+  [SlimeState.HAPPY]: BOB_DANCE,
+  [SlimeState.JUMPY]: BOB_DANCE,
+  [SlimeState.SAD]: BOB_DANCE,
+  [SlimeState.CURIOUS]: BOB_DANCE,
 };
 
 export function LoaderIcon({
@@ -91,7 +93,8 @@ export function LoaderIcon({
       muted
       playsInline
       src={current.src}
-      className="bg-transparent"
+      // The video's black background becomes transparent
+      className="bg-transparent mix-blend-lighten"
       style={{
         width: size,
         height: 'auto',
