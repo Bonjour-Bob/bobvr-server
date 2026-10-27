@@ -8,7 +8,8 @@ set "TOOLS=%USERPROFILE%\BOBvr-outils"
 set "BM=%SRC%\gui\electron\build-mod"
 set "OUT=%USERPROFILE%\Desktop\SlimeVR Mod - Installeur"
 set "JDK_URL=https://api.adoptium.net/v3/binary/latest/25/ga/windows/x64/jdk/hotspot/normal/eclipse?project=jdk"
-set "DRIVER_URL=https://github.com/SlimeVR/SlimeVR-OpenVR-Driver/releases/latest/download/slimevr-openvr-driver-win64.zip"
+rem Pilote v7 : le seul qui parle au serveur SlimeVR v22 (les anciens utilisent un autre canal)
+set "DRIVER_URL=https://github.com/SlimeVR/SlimeVR-OpenVR-Driver/releases/download/v7.0.0-rc.1/slimevr-openvr-driver-win64.zip"
 set "BINDINGS_URL=https://github.com/SlimeVR/SlimeVR-Server/releases/download/v22.0.0-rc.2/SlimeVR-win64.zip"
 set "HUSKY=0"
 
@@ -94,19 +95,19 @@ if not exist "%BM%\bindings\openvr_api.dll" goto :err
 
 echo.
 echo [7/8] Pilote SteamVR...
-if exist "%BM%\slimevr-openvr-driver-win64\driver.vrdrivermanifest" goto :driverok
+if exist "%BM%\slimevr-openvr-driver-v7\driver.vrdrivermanifest" goto :driverok
 if exist "%BM%\driver-zip" rmdir /s /q "%BM%\driver-zip"
 mkdir "%BM%\driver-zip"
 curl.exe -L -f -s -o "%BM%\driver.zip" "%DRIVER_URL%" || goto :err
 tar -xf "%BM%\driver.zip" -C "%BM%\driver-zip" || goto :err
 if not exist "%BM%\driver-zip\slimevr\driver.vrdrivermanifest" goto :err
-move "%BM%\driver-zip\slimevr" "%BM%\slimevr-openvr-driver-win64" >nul
+move "%BM%\driver-zip\slimevr" "%BM%\slimevr-openvr-driver-v7" >nul
 rmdir /s /q "%BM%\driver-zip"
 :driverok
 rem Copie du pilote sous le nom slimevr_mod : SteamVR l'affiche a part du
 rem pilote "slimevr" de SlimeVR officiel, on choisit lequel est actif
 if exist "%BM%\slimevr_mod" rmdir /s /q "%BM%\slimevr_mod"
-xcopy "%BM%\slimevr-openvr-driver-win64" "%BM%\slimevr_mod\" /e /i /q /y >nul || goto :err
+xcopy "%BM%\slimevr-openvr-driver-v7" "%BM%\slimevr_mod\" /e /i /q /y >nul || goto :err
 ren "%BM%\slimevr_mod\bin\win64\driver_slimevr.dll" driver_slimevr_mod.dll || goto :err
 (
 echo {
