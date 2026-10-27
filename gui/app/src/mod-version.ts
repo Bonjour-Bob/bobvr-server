@@ -20,6 +20,7 @@ export const MOD_CHANGELOG: ModChangelogEntry[] = [
       'Toutes les corrections du mod refaites pour la nouvelle base : genoux qui ne suivent pas les grands mouvements de hanches, dos assis (on peut toujours se pencher), assis sur les talons, rien de bloqué allongé, glisse après un raté du Wi-Fi, signal aux capteurs 10 fois par seconde.',
       'Les pieds ne sont jamais bloqués au sol allongé ou un genou par terre.',
       'Les pieds restent plantés quand tu bouges le torse ou les hanches (ils peuvent prendre jusqu’à 20 cm de retard avant d’être entraînés, et un pied un peu au-dessus du sol compte comme posé).',
+      'Pilote SteamVR à part : « slimevr_mod » pour BOBvr, à côté de « slimevr » pour SlimeVR officiel. On choisit lequel est actif dans les extensions de SteamVR.',
       'Garder Aligné : une posture allongé sur le dos à part. Enregistre la posture « sol » une fois assis par terre et une fois allongé, les deux sont gardées.',
       'Vue 3D : le mannequin est en bois clair, comme un mannequin de dessin, avec un visage souriant.',
       'Bob qui danse à la place des slimes partout (aucun capteur connecté, chargement, etc.).',

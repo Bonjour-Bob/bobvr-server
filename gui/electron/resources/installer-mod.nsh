@@ -18,9 +18,11 @@
 !macroend
 
 !macro customInstall
-  DetailPrint "Enregistrement du pilote SteamVR de SlimeVR..."
+  ; Pilote SteamVR "slimevr_mod", a part du pilote "slimevr" de SlimeVR officiel
+  ; (les deux apparaissent dans les extensions de SteamVR, on active celui qu'on veut)
+  DetailPrint "Enregistrement du pilote SteamVR slimevr_mod..."
   SetOutPath "$INSTDIR"
-  nsExec::ExecToLog '"$INSTDIR\jre\bin\java.exe" -jar "$INSTDIR\slimevr.jar" --install'
+  nsExec::ExecToLog `powershell -NoProfile -ExecutionPolicy Bypass -File "$INSTDIR\steamvr-driver.ps1" -Driver "$INSTDIR\slimevr_mod" -Old "$INSTDIR\slimevr-openvr-driver-win64"`
   Pop $0
   DetailPrint "Pilote SteamVR : code $0"
 
@@ -31,6 +33,8 @@
 !macroend
 
 !macro customUnInstall
+  nsExec::ExecToLog `powershell -NoProfile -ExecutionPolicy Bypass -File "$INSTDIR\steamvr-driver.ps1" -Driver "$INSTDIR\slimevr_mod" -Remove`
+  Pop $0
   nsExec::ExecToLog `powershell -NoProfile -ExecutionPolicy Bypass -File "$INSTDIR\steamvr-autostart.ps1" -ManifestDir "$INSTDIR" -Remove`
   Pop $0
 !macroend

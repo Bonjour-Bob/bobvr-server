@@ -47,9 +47,13 @@ win:
     # Registers SlimeVR Mod as a SteamVR app (starts with SteamVR)
     - from: "./resources/steamvr-autostart.ps1"
       to: "steamvr-autostart.ps1"
-    # SteamVR driver, registered with SteamVR at install
-    - from: "./build-mod/slimevr-openvr-driver-win64"
-      to: "slimevr-openvr-driver-win64"
+    # Registers / removes the slimevr_mod SteamVR driver
+    - from: "./resources/steamvr-driver.ps1"
+      to: "steamvr-driver.ps1"
+    # SteamVR driver renamed slimevr_mod: SteamVR lists it apart from the
+    # official "slimevr" driver, the user picks which one is on
+    - from: "./build-mod/slimevr_mod"
+      to: "slimevr_mod"
 
 nsis:
   artifactName: "SlimeVR-Mod-Installeur.${ext}"

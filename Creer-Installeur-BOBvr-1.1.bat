@@ -103,6 +103,19 @@ if not exist "%BM%\driver-zip\slimevr\driver.vrdrivermanifest" goto :err
 move "%BM%\driver-zip\slimevr" "%BM%\slimevr-openvr-driver-win64" >nul
 rmdir /s /q "%BM%\driver-zip"
 :driverok
+rem Copie du pilote sous le nom slimevr_mod : SteamVR l'affiche a part du
+rem pilote "slimevr" de SlimeVR officiel, on choisit lequel est actif
+if exist "%BM%\slimevr_mod" rmdir /s /q "%BM%\slimevr_mod"
+xcopy "%BM%\slimevr-openvr-driver-win64" "%BM%\slimevr_mod\" /e /i /q /y >nul || goto :err
+ren "%BM%\slimevr_mod\bin\win64\driver_slimevr.dll" driver_slimevr_mod.dll || goto :err
+(
+echo {
+echo 	"alwaysActivate": true,
+echo 	"name" : "slimevr_mod",
+echo 	"directory" : "",
+echo 	"resourceOnly" : false
+echo }
+) > "%BM%\slimevr_mod\driver.vrdrivermanifest"
 
 echo.
 echo [8/8] Creation de l'installeur...
