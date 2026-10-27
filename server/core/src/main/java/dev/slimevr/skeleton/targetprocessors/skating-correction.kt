@@ -76,10 +76,10 @@ fun floorLocked(
 	threshold: Float = FLOOR_DISTANCE_THRESHOLD,
 ) = position.y - floorLevel <= threshold * (if (wasLocked) LOCKED_UNLOCK_MULTIPLIER else 1f)
 
-// BOBvr: feet stay planted while the torso and hips move. The locked foot may lag up to 30 cm
-// behind the computed one before it is dragged, and a foot a bit above the floor (body
-// proportions not exact) still counts as on the floor.
-const val MOD_OFFSET_LIMIT = 0.3f
+// BOBvr: feet stay planted while the torso and hips move. The locked foot may lag up to 20 cm
+// behind the computed one before it is dragged (30 cm made the legs cross when walking or
+// turning), and a foot a bit above the floor (body proportions not exact) still counts as on the floor.
+const val MOD_OFFSET_LIMIT = 0.2f
 const val MOD_FLOOR_DISTANCE_THRESHOLD = 0.1f
 
 fun accelLocked(
