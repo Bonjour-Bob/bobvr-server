@@ -37,6 +37,11 @@ data class UserConfigData(
 	val proportions: Map<String, Float> = computeAllDefaultProportionsByBone(DEFAULT_USER_HEIGHT),
 	/** Only the poses that differ from their default are stored. */
 	val stayAlignedPoses: Map<StayAlignedRelaxedPose, StayAlignedPoseConfig> = emptyMap(),
+	/**
+	 * BOBvr: lying on the back has its own relaxed pose (SolarXR shares FLAT with sitting on the
+	 * ground). Recorded with the FLAT button while lying down.
+	 */
+	val bobvrLyingPose: StayAlignedPoseConfig? = null,
 	val version: Int = USER_CONFIG_VERSION,
 )
 

@@ -265,8 +265,20 @@ class StayAlignedBehaviour(
 			return
 		}
 		val recorded = recordedPoseConfig(trackers)
-		userConfig.context.dispatch(UserConfigActions.Update { copy(stayAlignedPoses = stayAlignedPoses + (pose to recorded)) })
-		AppLogger.stayAligned.info("Recorded relaxed pose $pose: upperLeg=${recorded.upperLegAngleInDeg} lowerLeg=${recorded.lowerLegAngleInDeg} foot=${recorded.footAngleInDeg}")
+		// BOBvr: the FLAT pose recorded lying on the back is kept apart from sitting on the ground.
+		// The first one recorded also fills FLAT so the switch in the GUI can be turned on.
+		val lying = pose == StayAlignedRelaxedPose.FLAT && PlayerPose.of(trackers) == PlayerPose.LYING_ON_BACK
+		userConfig.context.dispatch(
+			UserConfigActions.Update {
+				if (lying) {
+					val flat = stayAlignedPoses[pose]?.takeIf { it.recorded } ?: recorded
+					copy(bobvrLyingPose = recorded, stayAlignedPoses = stayAlignedPoses + (pose to flat))
+				} else {
+					copy(stayAlignedPoses = stayAlignedPoses + (pose to recorded))
+				}
+			},
+		)
+		AppLogger.stayAligned.info("Recorded relaxed pose ${if (lying) "LYING" else pose}: upperLeg=${recorded.upperLegAngleInDeg} lowerLeg=${recorded.lowerLegAngleInDeg} foot=${recorded.footAngleInDeg}")
 		receiver.sendRpc(recordingStatus(pose, StayAlignedPoseRecordingLifecycle.DONE, waitingDetail(seconds, timeout, check)))
 	}
 

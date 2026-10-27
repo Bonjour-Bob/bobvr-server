@@ -11,6 +11,7 @@ import dev.slimevr.skeleton.Skeleton
 import dev.slimevr.skeleton.SkeletonTargetProcessor
 import dev.slimevr.skeleton.bodyPartMap
 import dev.slimevr.skeleton.centreOfMass
+import dev.slimevr.skeleton.inputprocessors.modCorrectionsOn
 import dev.slimevr.skeleton.inputprocessors.modNoFootLock
 import dev.slimevr.skeleton.parentOf
 import dev.slimevr.util.inFloatingSeconds
@@ -72,7 +73,14 @@ fun floorLocked(
 	wasLocked: Boolean,
 	position: Vector3,
 	floorLevel: Float,
-) = position.y - floorLevel <= FLOOR_DISTANCE_THRESHOLD * (if (wasLocked) LOCKED_UNLOCK_MULTIPLIER else 1f)
+	threshold: Float = FLOOR_DISTANCE_THRESHOLD,
+) = position.y - floorLevel <= threshold * (if (wasLocked) LOCKED_UNLOCK_MULTIPLIER else 1f)
+
+// BOBvr: feet stay planted while the torso and hips move. The locked foot may lag up to 30 cm
+// behind the computed one before it is dragged, and a foot a bit above the floor (body
+// proportions not exact) still counts as on the floor.
+const val MOD_OFFSET_LIMIT = 0.3f
+const val MOD_FLOOR_DISTANCE_THRESHOLD = 0.1f
 
 fun accelLocked(
 	wasLocked: Boolean,
@@ -153,7 +161,10 @@ class SkatingCorrectionTargetProcessor(val settings: Settings, val skeleton: Ske
 	override fun process(mutableIkTargets: IKTargets, inputSkeleton: InputSkeleton, fk: ComputedSkeleton, floorLevel: Float) {
 		val skeletonConfig = settings.context.state.value.data.skeletonConfig
 		if (!skeleton.effectiveSkatingCorrection) return
+		val mod = modCorrectionsOn(settings)
 		val offsetLimit = FastMath.remapClamped(skeletonConfig.ratios.skatingCorrectionStrength, 0f, 1f, OFFSET_LIMIT_MIN, OFFSET_LIMIT_MAX)
+			.let { if (mod) maxOf(it, MOD_OFFSET_LIMIT) else it }
+		val floorThreshold = if (mod) MOD_FLOOR_DISTANCE_THRESHOLD else FLOOR_DISTANCE_THRESHOLD
 		val accelerationThreshold = FastMath.remapClamped(skeletonConfig.ratios.skatingCorrectionStrength, 0f, 1f, ACCELERATION_THRESHOLD_MIN, ACCELERATION_THRESHOLD_MAX)
 		val lockWarmup = FastMath.remapClamped(skeletonConfig.ratios.skatingCorrectionStrength, 0f, 1f, LOCK_WARMUP_MIN, LOCK_WARMUP_MAX)
 
@@ -184,7 +195,7 @@ class SkatingCorrectionTargetProcessor(val settings: Settings, val skeleton: Ske
 
 			// Compute if the body part should be locked
 			val shouldLock = (noComLocked || comLock[bodyPart] == true) &&
-				floorLocked(lastState.locked, curPosition, floorLevel) &&
+				floorLocked(lastState.locked, curPosition, floorLevel, floorThreshold) &&
 				accelLocked(lastState.locked, bone.acceleration, accelerationThreshold) &&
 				// BOBvr: never while lying or kneeling
 				parentOf(ikTargetBodyPart)?.let { modNoFootLock(settings, inputSkeleton, fk, floorLevel, it) } != true

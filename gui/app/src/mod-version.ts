@@ -19,6 +19,8 @@ export const MOD_CHANGELOG: ModChangelogEntry[] = [
       'Profils Normal, Danse et Origine (boutons à gauche du squelette ou en haut à droite). Origine = SlimeVR de base, sans les corrections du mod.',
       'Toutes les corrections du mod refaites pour la nouvelle base : genoux qui ne suivent pas les grands mouvements de hanches, dos assis (on peut toujours se pencher), assis sur les talons, rien de bloqué allongé, glisse après un raté du Wi-Fi, signal aux capteurs 10 fois par seconde.',
       'Les pieds ne sont jamais bloqués au sol allongé ou un genou par terre.',
+      'Les pieds restent plantés quand tu bouges le torse ou les hanches (ils peuvent prendre jusqu’à 30 cm de retard avant d’être entraînés, et un pied un peu au-dessus du sol compte comme posé).',
+      'Garder Aligné : une posture allongé sur le dos à part. Enregistre la posture « sol » une fois assis par terre et une fois allongé, les deux sont gardées.',
       'Vue 3D : le mannequin est en bois clair, comme un mannequin de dessin, avec un visage souriant.',
       'Bob qui danse à la place des slimes partout (aucun capteur connecté, chargement, etc.).',
       'Logo et musique de Bob, thème noir et blanc, alerte de mise à jour du site, « ? » des nouveautés, installeur et lancement avec SteamVR.',

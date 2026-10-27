@@ -26,8 +26,10 @@ class RelaxedPose(
 			playerPose: PlayerPose,
 			userConfig: UserConfigData,
 		): RelaxedPose? {
-			val poseConfig = stayAlignedPoseConfig(userConfig, playerPose.relaxedPose)
-			if (!poseConfig.enabled) return null
+			val flatConfig = stayAlignedPoseConfig(userConfig, playerPose.relaxedPose)
+			if (!flatConfig.enabled) return null
+			// BOBvr: lying on the back uses its own pose when recorded (the FLAT switch turns both on/off)
+			val poseConfig = if (playerPose == PlayerPose.LYING_ON_BACK) userConfig.bobvrLyingPose ?: flatConfig else flatConfig
 			return RelaxedPose(
 				Angle.ofDeg(poseConfig.upperLegAngleInDeg),
 				Angle.ofDeg(poseConfig.lowerLegAngleInDeg),
