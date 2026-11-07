@@ -1095,12 +1095,12 @@ class HumanSkeleton(
 		// the pelvis further forward and the body slid forward when leaning.
 		// The straightened back is turned so it still ends where the trackers
 		// put the pelvis: only the curve changes, not where the hips sit.
-		val rawSpan = upperChestRaw.sandwich(NEG_Y) * upperChestBone.length +
-			chestRaw.sandwich(NEG_Y) * chestBone.length +
-			waistRaw.sandwich(NEG_Y) * waistBone.length
-		val newSpan = upperChestRot.sandwich(NEG_Y) * upperChestBone.length +
-			chestRot.sandwich(NEG_Y) * chestBone.length +
-			waistRot.sandwich(NEG_Y) * waistBone.length
+		var rawSpan = upperChestRaw.sandwich(NEG_Y) * upperChestBone.length
+		rawSpan += chestRaw.sandwich(NEG_Y) * chestBone.length
+		rawSpan += waistRaw.sandwich(NEG_Y) * waistBone.length
+		var newSpan = upperChestRot.sandwich(NEG_Y) * upperChestBone.length
+		newSpan += chestRot.sandwich(NEG_Y) * chestBone.length
+		newSpan += waistRot.sandwich(NEG_Y) * waistBone.length
 		if (rawSpan.lenSq() < 1e-6f || newSpan.lenSq() < 1e-6f) return
 		val keepHips = fromTo(newSpan.unit(), rawSpan.unit())
 		if (!isFinite(keepHips)) return
