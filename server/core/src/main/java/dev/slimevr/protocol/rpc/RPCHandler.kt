@@ -24,6 +24,7 @@ import dev.slimevr.protocol.rpc.trackingchecklist.RPCTrackingChecklistHandler
 import dev.slimevr.protocol.rpc.trackingpause.RPCTrackingPause
 import dev.slimevr.steamvr.SteamVRUtils
 import dev.slimevr.tracking.processor.config.SkeletonConfigOffsets
+import dev.slimevr.tracking.processor.stayaligned.poses.PlayerPose
 import dev.slimevr.tracking.processor.stayaligned.poses.RelaxedPose
 import dev.slimevr.tracking.trackers.TrackerPosition
 import dev.slimevr.tracking.trackers.TrackerPosition.Companion.getByBodyPart
@@ -569,15 +570,21 @@ class RPCHandler(private val api: ProtocolAPI) : ProtocolHandler<RpcMessageHeade
 
 		val pose = request.pose()
 
+		// SlimeVR Mod: the flat pose recorded while lying on the back is the
+		// lying pose (same detection Stay Aligned uses), the floor pose stays
+		val skeleton = api.server.humanPoseManager.skeleton
+		val lying = pose == StayAlignedRelaxedPose.FLAT &&
+			PlayerPose.ofTrackers(skeleton.trackerSkeleton) == PlayerPose.LYING_ON_BACK
+
 		val poseConfig =
 			when (pose) {
 				StayAlignedRelaxedPose.STANDING -> config.standingRelaxedPose
 				StayAlignedRelaxedPose.SITTING -> config.sittingRelaxedPose
-				StayAlignedRelaxedPose.FLAT -> config.flatRelaxedPose
+				StayAlignedRelaxedPose.FLAT -> if (lying) config.lyingRelaxedPose else config.flatRelaxedPose
 				else -> return
 			}
 
-		val relaxedPose = RelaxedPose.fromTrackers(api.server.humanPoseManager.skeleton)
+		val relaxedPose = RelaxedPose.fromTrackers(skeleton)
 
 		poseConfig.enabled = true
 		poseConfig.upperLegAngleInDeg = relaxedPose.upperLeg.toDeg()
@@ -586,7 +593,7 @@ class RPCHandler(private val api: ProtocolAPI) : ProtocolHandler<RpcMessageHeade
 
 		configManager.saveConfig()
 
-		LogManager.info("[detectStayAlignedRelaxedPose] pose=$pose $relaxedPose")
+		LogManager.info("[detectStayAlignedRelaxedPose] pose=${if (lying) "LYING" else pose} $relaxedPose")
 
 		sendSettingsChangedResponse(conn, messageHeader)
 	}
@@ -613,6 +620,13 @@ class RPCHandler(private val api: ProtocolAPI) : ProtocolHandler<RpcMessageHeade
 		poseConfig.upperLegAngleInDeg = 0.0f
 		poseConfig.lowerLegAngleInDeg = 0.0f
 		poseConfig.footAngleInDeg = 0.0f
+		// SlimeVR Mod: resetting the flat pose resets the lying one too
+		if (pose == StayAlignedRelaxedPose.FLAT) {
+			config.lyingRelaxedPose.enabled = false
+			config.lyingRelaxedPose.upperLegAngleInDeg = 0.0f
+			config.lyingRelaxedPose.lowerLegAngleInDeg = 0.0f
+			config.lyingRelaxedPose.footAngleInDeg = 0.0f
+		}
 
 		LogManager.info("[resetStayAlignedRelaxedPose] pose=$pose")
 

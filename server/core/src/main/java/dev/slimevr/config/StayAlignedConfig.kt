@@ -38,6 +38,12 @@ class StayAlignedConfig {
 	val flatRelaxedPose = StayAlignedRelaxedPoseConfig()
 
 	/**
+	 * SlimeVR Mod: lying on the back (in bed). Recorded with the "flat" pose
+	 * while lying; when not recorded, lying uses the flat pose.
+	 */
+	val lyingRelaxedPose = StayAlignedRelaxedPoseConfig()
+
+	/**
 	 * Whether setup has been completed
 	 */
 	var setupComplete = false

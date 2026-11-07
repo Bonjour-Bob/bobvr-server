@@ -621,6 +621,10 @@ settings-stay_aligned-relaxed_poses-description = Garder Aligné utilise vos pos
 settings-stay_aligned-relaxed_poses-standing = Ajuster les capteurs en position debout
 settings-stay_aligned-relaxed_poses-sitting = Ajuster les capteurs en position assise sur une chaise
 settings-stay_aligned-relaxed_poses-flat = Ajuster les capteurs en position assise sur le sol ou allongée sur le dos
+settings-stay_aligned-relaxed_poses-lying = Ajuster les capteurs allongé dans le lit (BOBvr)
+settings-stay_aligned-relaxed_poses-lying-title = Posture allongé détendu
+settings-stay_aligned-relaxed_poses-lying-step-0 = 1. Appuyez sur « Enregistrer la posture », puis allongez-vous sur le dos dans votre lit en moins de 5 secondes. Détendez-vous !
+settings-stay_aligned-relaxed_poses-lying-step-1 = 2. La posture est enregistrée au bout de 5 secondes. La réinitialiser réinitialise aussi la posture au sol.
 settings-stay_aligned-relaxed_poses-save_pose = Enregistrer la posture
 settings-stay_aligned-relaxed_poses-reset_pose = Réinitialiser la posture
 settings-stay_aligned-relaxed_poses-close = Fermer
@@ -1133,7 +1137,7 @@ onboarding-assign_trackers-option-label =
     }
 onboarding-assign_trackers-option-description =
     { $mode ->
-        [lower-body] Hanche + jambes, comme un Vive (sans capteur au torse)
+        [lower-body] Minimum pour le suivi du corps en réalité virtuelle
         [core] + Suivi amélioré de la colonne vertébrale
         [enhanced-core] + Rotation des pieds
         [feet-elbows] Torse, hanche, cuisses, chevilles et coudes (sans pieds)

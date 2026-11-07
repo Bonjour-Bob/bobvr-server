@@ -13,6 +13,7 @@ import { bodypartToString } from '@/utils/formatting';
 import { useLocaleConfig } from '@/i18n/config';
 import {
   FlatRelaxedPoseModal,
+  LyingRelaxedPoseModal,
   SittingRelaxedPoseModal,
   StandingRelaxedPoseModal,
 } from './StayAlignedPoseModal';
@@ -174,6 +175,7 @@ export function StayAlignedSettings({
   const openStanding = useState(false);
   const openSitting = useState(false);
   const openFlat = useState(false);
+  const openLying = useState(false);
 
   return (
     <>
@@ -295,6 +297,22 @@ export function StayAlignedSettings({
                   className="w-full max-w-32"
                   disabled={!config.setupComplete}
                   onClick={() => openFlat[1](true)}
+                />
+              </Localized>
+            </div>
+            <div className="flex gap-2 items-center">
+              <div className="flex-grow px-2">
+                <Typography>
+                  {l10n.getString('settings-stay_aligned-relaxed_poses-lying')}
+                </Typography>
+              </div>
+              <LyingRelaxedPoseModal open={openLying} />
+              <Localized id="settings-stay_aligned-relaxed_poses-save_pose">
+                <Button
+                  variant="primary"
+                  className="w-full max-w-32"
+                  disabled={!config.setupComplete}
+                  onClick={() => openLying[1](true)}
                 />
               </Localized>
             </div>

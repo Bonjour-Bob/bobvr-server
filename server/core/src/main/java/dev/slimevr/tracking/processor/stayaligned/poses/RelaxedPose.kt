@@ -55,7 +55,12 @@ class RelaxedPose(
 			PlayerPose.SITTING_ON_GROUND,
 			PlayerPose.LYING_ON_BACK,
 			-> {
-				val poseConfig = config.flatRelaxedPose
+				// SlimeVR Mod: lying in bed has its own pose once recorded
+				val poseConfig = if (playerPose == PlayerPose.LYING_ON_BACK && config.lyingRelaxedPose.enabled) {
+					config.lyingRelaxedPose
+				} else {
+					config.flatRelaxedPose
+				}
 				if (poseConfig.enabled) {
 					RelaxedPose(
 						Angle.ofDeg(poseConfig.upperLegAngleInDeg),

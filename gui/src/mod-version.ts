@@ -14,7 +14,10 @@ export const MOD_CHANGELOG: ModChangelogEntry[] = [
   {
     version: '0.9.3',
     changes: [
-      'Assis : tu peux te pencher en avant. Seul un dos un peu avachi est redressé, une vraie penchée passe en entier.',
+      'Assis : tu peux te pencher en avant sans que le corps avance. Le dos est toujours un peu redressé, mais les hanches restent là où sont les capteurs.',
+      'Dans le lit : plus de saccades quand tu bouges beaucoup les genoux. Le sol (pieds et genoux poussés vers le haut, pieds remis à plat) est ignoré quand tu es allongé, et la correction « assis sur les talons » ne se déclenche plus genoux levés ou à moitié allongé.',
+      'Garder Aligné : nouvelle posture « allongé dans le lit » (Réglages > Garder Aligné). Appuie sur Enregistrer, allonge-toi sur le dos, elle est prise au bout de 5 s. Sans elle, allongé utilise la posture au sol comme avant.',
+      'Mode 5 capteurs : de retour comme à l’origine, avec le capteur du torse (poitrine + jambes). Le mode « hanche seule avec torse virtuel » est retiré.',
       'Plus fluide quand le Wi-Fi d’un capteur a un raté : pendant la coupure le membre ne part plus tout seul (plus de prédiction dans le vide), et quand il revient il glisse jusqu’à sa place au lieu de sauter (sauf en mode Origine).',
       'Les capteurs restent mieux connectés : le serveur leur parle 10 fois par seconde au lieu de 2, donc avec un Wi-Fi qui perd des paquets ils décrochent beaucoup moins souvent.',
     ],

@@ -599,6 +599,10 @@ settings-stay_aligned-relaxed_poses-description = Stay Aligned uses your relaxed
 settings-stay_aligned-relaxed_poses-standing = Adjust trackers while standing
 settings-stay_aligned-relaxed_poses-sitting = Adjust trackers while sitting in a chair
 settings-stay_aligned-relaxed_poses-flat = Adjust trackers while sitting on the floor, or lying on your back
+settings-stay_aligned-relaxed_poses-lying = Adjust trackers while lying in bed (BOBvr)
+settings-stay_aligned-relaxed_poses-lying-title = Relaxed Lying Pose
+settings-stay_aligned-relaxed_poses-lying-step-0 = 1. Press "Save pose", then lie on your back in bed within 5 seconds. Relax!
+settings-stay_aligned-relaxed_poses-lying-step-1 = 2. The pose is saved after 5 seconds. Resetting it also resets the floor pose.
 settings-stay_aligned-relaxed_poses-save_pose = Save pose
 settings-stay_aligned-relaxed_poses-reset_pose = Reset pose
 settings-stay_aligned-relaxed_poses-close = Close
@@ -1139,7 +1143,7 @@ onboarding-assign_trackers-option-label = { $mode ->
     *[all] All Trackers
 }
 onboarding-assign_trackers-option-description = { $mode ->
-    [lower-body] Hip + legs, like a Vive (no chest tracker)
+    [lower-body] Minimum for VR full-body tracking
     [core] + Enhanced spine tracking
     [enhanced-core] + Foot rotation
     [feet-elbows] Chest, hip, thighs, ankles and elbows (no feet)

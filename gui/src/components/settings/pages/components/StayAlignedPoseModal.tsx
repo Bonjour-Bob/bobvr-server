@@ -15,13 +15,15 @@ function StayAlignedPoseModal({
   descriptionKeys,
   children,
   relaxedPose,
+  delaySeconds,
 }: {
   open: [boolean, Dispatch<SetStateAction<boolean>>];
   title: string;
   descriptionKeys: string[];
-  children: ReactNode;
+  children?: ReactNode;
   relaxedPose: StayAlignedRelaxedPose;
   lastStep?: boolean;
+  delaySeconds?: number;
 }) {
   const { l10n } = useLocalization();
 
@@ -65,6 +67,7 @@ function StayAlignedPoseModal({
                 open[1](false);
               }}
               pose={relaxedPose}
+              delaySeconds={delaySeconds}
             />
           </div>
         </div>
@@ -137,4 +140,23 @@ export const FlatRelaxedPoseModal = ({
       alt="Reset position"
     />
   </StayAlignedPoseModal>
+);
+
+// SlimeVR Mod: lying in bed, saved a few seconds after the click so there is
+// time to lie down. The server stores it as the lying pose.
+export const LyingRelaxedPoseModal = ({
+  open,
+}: {
+  open: [boolean, Dispatch<SetStateAction<boolean>>];
+}) => (
+  <StayAlignedPoseModal
+    open={open}
+    title={'settings-stay_aligned-relaxed_poses-lying-title'}
+    descriptionKeys={[
+      'settings-stay_aligned-relaxed_poses-lying-step-0',
+      'settings-stay_aligned-relaxed_poses-lying-step-1',
+    ]}
+    relaxedPose={StayAlignedRelaxedPose.FLAT}
+    delaySeconds={5}
+  />
 );

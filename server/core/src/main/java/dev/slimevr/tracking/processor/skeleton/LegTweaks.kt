@@ -224,11 +224,15 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		// be tweaked
 		preUpdate()
 
+		// SlimeVR Mod: lying in bed the floor means nothing (feet and knees
+		// were pushed up and the feet turned flat now and then: jerky legs)
+		val inBed = skeleton.modCorrections && !isPelvisUpright()
+
 		// correct foot rotation's (Foot plant & Toe snap)
-		if (footPlantEnabled || toeSnapEnabled) correctFootRotations()
+		if ((footPlantEnabled || toeSnapEnabled) && !inBed) correctFootRotations()
 
 		// push the feet up if needed (Floor clip)
-		if (floorClipEnabled && !localizerMode) correctClipping()
+		if (floorClipEnabled && !localizerMode && !inBed) correctClipping()
 
 		// correct for skating if needed (Skating correction)
 		// SlimeVR Mod: with foot trackers, the lock comes from the trackers
