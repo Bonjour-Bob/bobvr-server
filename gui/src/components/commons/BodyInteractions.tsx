@@ -1,8 +1,9 @@
 import classNames from 'classnames';
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { BodyPart } from 'solarxr-protocol';
 import { PersonFrontIcon } from './PersonFrontIcon';
 import { useBreakpoint } from '@/hooks/breakpoint';
+import { ActivePartContext } from '@/components/tracker/TrackerPartCard';
 
 export function BodyInteractions({
   leftControls,
@@ -13,6 +14,7 @@ export function BodyInteractions({
   variant = 'tracker-select',
   mirror,
   onSelectRole,
+  figure,
 }: {
   leftControls?: ReactNode;
   rightControls?: ReactNode;
@@ -23,7 +25,10 @@ export function BodyInteractions({
   onSelectRole: (role: BodyPart) => void;
   highlightedRoles: BodyPart[];
   mirror: boolean;
+  // SlimeVR Mod: another picture (the hand for the fingers)
+  figure?: ReactNode;
 }) {
+  const activePart = useContext(ActivePartContext);
   const { isMobile } = useBreakpoint('mobile');
 
   const personRef = useRef<HTMLDivElement | null>(null);
@@ -206,11 +211,12 @@ export function BodyInteractions({
           ref={personRef}
           className={classNames('relative flex justify-center flex-grow')}
         >
-          <PersonFrontIcon mirror={mirror} />
+          {figure ?? <PersonFrontIcon mirror={mirror} />}
           {slotsButtonsPos.map(
             ({ top, left, height, width, id, hidden, buttonOffset }) => (
               <div
                 key={id}
+                data-body-part={(BodyPart as any)[id]}
                 className={classNames('absolute z-10')}
                 onClick={() => onSelectRole((BodyPart as any)[id])}
                 style={{
@@ -236,10 +242,17 @@ export function BodyInteractions({
                   <div
                     className={classNames(
                       'absolute rounded-full outline-background-90 transition-opacity',
-                      'hover:bg-accent-background-40',
+                      'hover:bg-accent-background-40 box-border',
                       assignedRoles.includes((BodyPart as any)[id])
                         ? 'bg-status-success'
-                        : 'bg-background-10',
+                        : highlightedRoles.includes((BodyPart as any)[id])
+                          ? 'bg-status-warning'
+                          : 'bg-background-10',
+                      // SlimeVR Mod: left side blue, right side pink (like v22)
+                      id.startsWith('LEFT_') && 'border-4 border-[#2b83e8]',
+                      id.startsWith('RIGHT_') && 'border-4 border-[#f956b8]',
+                      activePart === (BodyPart as any)[id] &&
+                        'scale-150 ring-2 ring-accent-background-30',
                       hidden ? 'opacity-0' : 'opacity-100'
                     )}
                     style={{

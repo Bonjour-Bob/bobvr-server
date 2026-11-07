@@ -112,8 +112,11 @@ export function BodyAssignment({
   highlightedRoles = [],
   onlyAssigned = false,
   dotSize,
+  visibleParts,
 }: {
   assignMode: AssignMode | null;
+  // SlimeVR Mod: exact list of parts to show (v22 style assignment page)
+  visibleParts?: BodyPart[];
   mirror: boolean;
   onlyAssigned?: boolean;
   rolesWithErrors?: Partial<Record<BodyPart, BodyPartError>>;
@@ -155,9 +158,11 @@ export function BodyAssignment({
 
   const hasBodyPart = useCallback(
     (part: BodyPart) =>
-      COMMONS.includes(part) ||
-      (assignMode && ASSIGNMENT_MODES[assignMode].includes(part)),
-    [assignMode]
+      visibleParts
+        ? visibleParts.includes(part)
+        : COMMONS.includes(part) ||
+          (assignMode && ASSIGNMENT_MODES[assignMode].includes(part)),
+    [assignMode, visibleParts]
   );
 
   return (

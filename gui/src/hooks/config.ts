@@ -58,6 +58,8 @@ export interface Config {
   fonts: string[];
   useTray: boolean | null;
   mirrorView: boolean;
+  // SlimeVR Mod: assignment page shows every body part (v22 style page)
+  assignShowAllBodyParts: boolean;
   assignMode: AssignMode | null;
   discordPresence: boolean;
   errorTracking: boolean | null;
@@ -89,6 +91,7 @@ export const defaultConfig: Config = {
   fonts: ['poppins'],
   useTray: null,
   mirrorView: true,
+  assignShowAllBodyParts: false,
   assignMode: null,
   discordPresence: false,
   errorTracking: null,

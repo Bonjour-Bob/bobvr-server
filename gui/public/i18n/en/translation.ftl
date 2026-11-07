@@ -1130,6 +1130,43 @@ onboarding-assign_trackers-assigned = { $assigned } of { $trackers ->
 onboarding-assign_trackers-advanced = Show advanced assign locations
 onboarding-assign_trackers-next = I assigned all the trackers
 onboarding-assign_trackers-mirror_view = Mirror view
+
+## SlimeVR Mod: assignment page in the SlimeVR v22 style
+onboarding-assign_trackers-description-v22 = Let's choose which tracker goes where. Drag a tracker onto the body, or click a location then the tracker.
+onboarding-assign_trackers-show_all = Show all body parts
+onboarding-assign_trackers-group-wifi = Wi-Fi Trackers
+onboarding-assign_trackers-group-other = Other devices
+onboarding-assign_trackers-no_trackers-title = No trackers connected
+onboarding-assign_trackers-no_trackers-description = Connect a tracker to start assigning it to a body part
+onboarding-assign_trackers-all_assigned-title = All trackers assigned!
+onboarding-assign_trackers-all_assigned-description = You're ready to move on to the next step
+# $parts (String) - the body parts still missing a tracker, formatted as a list
+# $count (Number) - how many of them there are
+onboarding-assign_trackers-warning-required = { $count ->
+    [one] { $parts } still needs a tracker
+   *[other] { $parts } still need trackers
+}
+onboarding-assign_trackers-tab-body = Body
+onboarding-assign_trackers-tab-fingers = Fingers
+onboarding-assign_trackers-mirror = Mirror view
+onboarding-assign_trackers-side-left = Left
+onboarding-assign_trackers-side-right = Right
+onboarding-assign_trackers-reset_assignments = Reset all assignments
+onboarding-assign_trackers-tap_modal-title = Tap to assign
+onboarding-assign_trackers-tap_modal-description = Tap the tracker you want to assign twice, or press its button once. You can also pick it below, or drag a tracker from the list.
+onboarding-assign_trackers-tap_modal-cancel = Cancel
+# $part (String) - the body part
+onboarding-assign_trackers-unassign_part = Unassign { $part }
+onboarding-assign_trackers-finger-thumb = Thumb
+onboarding-assign_trackers-finger-index = Index finger
+onboarding-assign_trackers-finger-middle = Middle finger
+onboarding-assign_trackers-finger-ring = Ring finger
+onboarding-assign_trackers-finger-little = Pinkie finger
+onboarding-assign_trackers-joint-distal = Distal
+onboarding-assign_trackers-joint-intermediate = Medial
+onboarding-assign_trackers-joint-proximal = Proximal
+onboarding-assign_trackers-joint-metacarpal = Metacarpal
+
 onboarding-assign_trackers-option-amount = { $trackersCount ->
     [one] x{ $trackersCount }
     *[other] x{ $trackersCount }

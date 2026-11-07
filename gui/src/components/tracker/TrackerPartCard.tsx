@@ -1,5 +1,12 @@
 import classNames from 'classnames';
-import { MouseEventHandler, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  MouseEventHandler,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { BodyPart, TrackerDataT } from 'solarxr-protocol';
 import { useTracker } from '@/hooks/tracker';
 import { Typography } from '@/components/commons/Typography';
@@ -25,12 +32,27 @@ function Tracker({
   }, [velocity]);
 
   return (
-    <Typography>
-      {`${tracker.info?.customName || tracker.info?.displayName}` ||
-        l10n.getString('tracker-part_card-unassigned')}
-    </Typography>
+    <div
+      className="flex items-center gap-2 bg-background-60 rounded-md px-2 py-1 max-w-full"
+      data-tracker-key={trackerKey(tracker)}
+    >
+      <Typography truncate whitespace="whitespace-nowrap">
+        {`${tracker.info?.customName || tracker.info?.displayName}` ||
+          l10n.getString('tracker-part_card-unassigned')}
+      </Typography>
+    </div>
   );
 }
+
+/** SlimeVR Mod: id of a tracker, to find it back after a drag */
+export const trackerKey = (tracker: TrackerDataT) =>
+  `${tracker.trackerId?.deviceId?.id ?? 'x'}:${tracker.trackerId?.trackerNum ?? 0}`;
+
+/**
+ * SlimeVR Mod: body part a tracker is being dragged over (or that waits for a
+ * tracker), highlighted on the figure
+ */
+export const ActivePartContext = createContext<BodyPart>(BodyPart.NONE);
 
 export function TrackerPartCard({
   td,
@@ -39,6 +61,7 @@ export function TrackerPartCard({
   roleError,
   onlyAssigned,
   onClick,
+  labelId,
 }: {
   td: FlatDeviceTracker[];
   role: BodyPart;
@@ -46,7 +69,9 @@ export function TrackerPartCard({
   onlyAssigned: boolean;
   direction: 'left' | 'right';
   onClick?: MouseEventHandler<HTMLDivElement>;
+  labelId?: string;
 }) {
+  const active = useContext(ActivePartContext) === role;
   const { isXs } = useBreakpoint('xs');
   const { l10n } = useLocalization();
   const [velocities, setVelocities] = useState<number[]>([]);
@@ -80,10 +105,12 @@ export function TrackerPartCard({
     (showCard && (
       <div
         className={classNames(
-          'flex flex-col gap-1 control xs:w-auto hover:bg-background-50 cursor-pointer px-2 py-1 rounded-md relative transition-[box-shadow] duration-200 ease-linear',
-          direction === 'left' ? 'items-start' : 'items-end'
+          'flex flex-col gap-1 control xs:w-auto hover:bg-background-50 cursor-pointer px-2 py-1 rounded-md relative transition-[box-shadow,background-color] duration-200 ease-linear select-none',
+          direction === 'left' ? 'items-start' : 'items-end',
+          active && 'bg-accent-background-30/40'
         )}
         id={BodyPart[role]}
+        data-body-part={role}
         onClick={onClick}
         style={{
           boxShadow: `0px 0px ${globalVelocity * 3}px ${
@@ -105,7 +132,7 @@ export function TrackerPartCard({
           variant={isXs ? 'section-title' : 'standard'}
           whitespace={isXs ? 'whitespace-nowrap' : undefined}
         >
-          {l10n.getString('body_part-' + BodyPart[role])}
+          {l10n.getString(labelId ?? 'body_part-' + BodyPart[role])}
         </Typography>
         {td?.map(({ tracker }, index) => (
           <Tracker

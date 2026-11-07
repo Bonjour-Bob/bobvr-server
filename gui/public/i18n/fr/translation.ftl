@@ -1121,6 +1121,43 @@ onboarding-assign_trackers-assigned =
 onboarding-assign_trackers-advanced = Afficher les emplacements d'attribution avancés
 onboarding-assign_trackers-next = J'ai attribué tous mes capteurs
 onboarding-assign_trackers-mirror_view = Vue miroir
+
+## SlimeVR Mod : page d'attribution façon SlimeVR v22
+onboarding-assign_trackers-description-v22 = Choisissons où mettre chaque capteur. Glisse un capteur sur le corps, ou clique sur un emplacement puis sur le capteur.
+onboarding-assign_trackers-show_all = Afficher toutes les parties du corps
+onboarding-assign_trackers-group-wifi = Capteurs Wi-Fi
+onboarding-assign_trackers-group-other = Autres appareils
+onboarding-assign_trackers-no_trackers-title = Aucun capteur connecté
+onboarding-assign_trackers-no_trackers-description = Connecte un capteur pour pouvoir l'attribuer à une partie du corps
+onboarding-assign_trackers-all_assigned-title = Tous les capteurs sont attribués !
+onboarding-assign_trackers-all_assigned-description = Tu peux passer à l'étape suivante
+# $parts (String) - the body parts still missing a tracker, formatted as a list
+# $count (Number) - how many of them there are
+onboarding-assign_trackers-warning-required = { $count ->
+    [one] { $parts } a encore besoin d'un capteur
+   *[other] { $parts } ont encore besoin de capteurs
+}
+onboarding-assign_trackers-tab-body = Corps
+onboarding-assign_trackers-tab-fingers = Doigts
+onboarding-assign_trackers-mirror = Vue miroir
+onboarding-assign_trackers-side-left = Gauche
+onboarding-assign_trackers-side-right = Droite
+onboarding-assign_trackers-reset_assignments = Réinitialiser les attributions
+onboarding-assign_trackers-tap_modal-title = Tape pour attribuer
+onboarding-assign_trackers-tap_modal-description = Tape deux fois sur le capteur à attribuer, ou appuie une fois sur son bouton. Tu peux aussi le choisir ci-dessous, ou glisser un capteur depuis la liste.
+onboarding-assign_trackers-tap_modal-cancel = Annuler
+# $part (String) - the body part
+onboarding-assign_trackers-unassign_part = Désattribuer : { $part }
+onboarding-assign_trackers-finger-thumb = Pouce
+onboarding-assign_trackers-finger-index = Index
+onboarding-assign_trackers-finger-middle = Majeur
+onboarding-assign_trackers-finger-ring = Annulaire
+onboarding-assign_trackers-finger-little = Auriculaire
+onboarding-assign_trackers-joint-distal = Distal
+onboarding-assign_trackers-joint-intermediate = Intermédiaire
+onboarding-assign_trackers-joint-proximal = Proximal
+onboarding-assign_trackers-joint-metacarpal = Métacarpien
+
 onboarding-assign_trackers-option-amount =
     { $trackersCount ->
         [one] x{ $trackersCount }
