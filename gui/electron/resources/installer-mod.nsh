@@ -4,7 +4,7 @@
 ; jour (meme appId). Il faut juste que rien ne bloque ses fichiers.
 !macro customInit
   ; Le serveur Java de SlimeVR Mod peut encore tourner (icone pres de l'horloge)
-  nsExec::Exec `powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-Process java,javaw -ErrorAction SilentlyContinue | Where-Object { $$_.Path -like '*SlimeVR Mod*' } | Stop-Process -Force"`
+  nsExec::Exec `powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-Process java,javaw -ErrorAction SilentlyContinue | Where-Object { $$_.Path -like '*BOBvr 0.9*' } | Stop-Process -Force"`
   Pop $0
 
   ; SteamVR garde le pilote SlimeVR ouvert : il faut le fermer
@@ -26,7 +26,7 @@
 
   ; Appli SteamVR : permet de lancer SlimeVR Mod au demarrage de SteamVR
   DetailPrint "Enregistrement de SlimeVR Mod dans SteamVR..."
-  nsExec::ExecToLog `powershell -NoProfile -ExecutionPolicy Bypass -File "$INSTDIR\steamvr-autostart.ps1" -Exe "$INSTDIR\SlimeVR Mod.exe" -ManifestDir "$INSTDIR"`
+  nsExec::ExecToLog `powershell -NoProfile -ExecutionPolicy Bypass -File "$INSTDIR\steamvr-autostart.ps1" -Exe "$INSTDIR\BOBvr 0.9.exe" -ManifestDir "$INSTDIR"`
   Pop $0
 !macroend
 

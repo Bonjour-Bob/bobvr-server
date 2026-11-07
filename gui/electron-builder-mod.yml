@@ -1,6 +1,9 @@
-# Installeur Windows de SlimeVR Mod (version modifiee, separee de SlimeVR officiel)
-appId: dev.slimevr.SlimeVR.mod
-productName: SlimeVR Mod
+# Installeur Windows de BOBvr 0.9 (version modifiee, separee de SlimeVR officiel
+# et de BOBvr 1.1 : autre appId, autre dossier, autre raccourci, les deux
+# peuvent etre installees en meme temps)
+appId: dev.slimevr.SlimeVR.bobvr09
+productName: BOBvr 0.9
+executableName: BOBvr 0.9
 
 directories:
   output: dist/mod
@@ -42,17 +45,18 @@ win:
     - from: "./build-mod/slimevr-openvr-driver-win64"
       to: "slimevr-openvr-driver-win64"
 
-# Reinstaller une version plus recente par-dessus met SlimeVR Mod a jour :
+# Reinstaller une version plus recente par-dessus met BOBvr 0.9 a jour :
 # meme appId, l'ancienne version est remplacee et les reglages (dans
-# %APPDATA%\dev.slimevr.SlimeVR) sont gardes. Le numero de version est donne
+# %APPDATA%\dev.slimevr.SlimeVR, partages avec BOBvr 1.1 qui utilise
+# d'autres fichiers) sont gardes. Le numero de version est donne
 # par Creer-Installeur-SlimeVR-Mod.bat (date et heure de creation).
 nsis:
-  artifactName: "SlimeVR-Mod-Installeur.${ext}"
+  artifactName: "BOBvr-0.9-Installeur.${ext}"
   deleteAppDataOnUninstall: false
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: always
   createStartMenuShortcut: true
-  shortcutName: "SlimeVR Mod"
+  shortcutName: "BOBvr 0.9"
   include: "./electron/resources/installer-mod.nsh"

@@ -17,7 +17,7 @@ $steam = (Get-ItemProperty -Path "HKCU:\Software\Valve\Steam" -ErrorAction Silen
 if (-not $steam) { Write-Host "Steam introuvable."; exit 1 }
 $steam = $steam -replace "/", "\"
 $appConfig = Join-Path $steam "config\appconfig.json"
-$manifest = Join-Path $ManifestDir "slimevr-mod.vrmanifest"
+$manifest = Join-Path $ManifestDir "bobvr-09.vrmanifest"
 
 # Liste des manifestes deja enregistres dans SteamVR
 $paths = @()
@@ -32,12 +32,12 @@ $paths = @($paths | Where-Object { $_ -and ($_ -ne $manifest) })
 if (-not $Remove) {
 	New-Item -ItemType Directory -Force -Path $ManifestDir | Out-Null
 	$app = [ordered]@{
-		app_key = "dev.slimevr.mod"
+		app_key = "dev.slimevr.bobvr09"
 		launch_type = "binary"
 		binary_path_windows = $Exe
 		arguments = $Arguments
 		is_dashboard_overlay = $true
-		strings = @{ en_us = @{ name = "SlimeVR Mod"; description = "SlimeVR Mod (BOBvr)" } }
+		strings = @{ en_us = @{ name = "BOBvr 0.9"; description = "BOBvr 0.9 (SlimeVR Mod)" } }
 	}
 	$doc = [ordered]@{ source = "builtin"; applications = @($app) }
 	[System.IO.File]::WriteAllText($manifest, ($doc | ConvertTo-Json -Depth 6), $utf8)
