@@ -19,7 +19,7 @@ const MAINBUTTON_CLASSES = ({ disabled }: { disabled: boolean }) =>
   classNames(
     'relative overflow-clip',
     // SlimeVR Mod : icone au-dessus du texte tant que la fenetre est etroite
-    'flex h-full w-full items-center justify-center gap-1 xl:gap-2 px-1 xl:px-4 flex-col xl:flex-row bg-background-60 rounded-lg fill-background-10 aspect-square md:aspect-auto',
+    'flex h-full w-full items-center justify-center gap-1 xl:gap-2 px-1 xl:px-4 flex-col xl:flex-row bg-background-60 rounded-lg fill-background-10',
     {
       'cursor-pointer hover:bg-background-50 bg-background-60': !disabled,
       'cursor-not-allowed bg-background-70 brightness-75': disabled,

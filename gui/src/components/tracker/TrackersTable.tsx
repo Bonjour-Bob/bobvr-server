@@ -1,6 +1,14 @@
 import classNames from 'classnames';
 import { IPv4 } from 'ip-num';
-import { createContext, ReactNode, useContext, useMemo } from 'react';
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useConfig } from '@/hooks/config';
 import { useTracker } from '@/hooks/tracker';
 import { BodyPartIcon } from '@/components/commons/BodyPartIcon';
@@ -166,20 +174,65 @@ function Cell({
 
 const TrackerRowProvider = createContext<FlatDeviceTracker>(undefined as never);
 
+// SlimeVR Mod: in a small window the columns that don't fit are hidden
+// instead of scrolling sideways, the least useful ones first
+type Column =
+  | 'name'
+  | 'type'
+  | 'battery'
+  | 'ping'
+  | 'tps'
+  | 'rotation'
+  | 'temp'
+  | 'accel'
+  | 'position'
+  | 'stayAligned'
+  | 'url';
+
+const HIDE_ORDER: Column[] = [
+  'url',
+  'stayAligned',
+  'position',
+  'accel',
+  'type',
+  'temp',
+  'rotation',
+  'tps',
+  'ping',
+  'battery',
+];
+
+const COLUMN_ORDER: Column[] = [
+  'name',
+  'type',
+  'battery',
+  'ping',
+  'tps',
+  'rotation',
+  'temp',
+  'accel',
+  'position',
+  'stayAligned',
+  'url',
+];
+
+type Layout = { show: (col: Column) => boolean; last: Column };
+
 function Row({
   data,
   highlightedTrackers,
   clickedTracker,
   gridTemplateColumns,
+  layout: { show, last },
 }: {
   data: FlatDeviceTracker;
   highlightedTrackers: highlightedTrackers | undefined;
   clickedTracker: (tracker: TrackerDataT) => void;
   gridTemplateColumns: string;
+  layout: Layout;
 }) {
   const { config } = useConfig();
   const fontColor = config?.devSettings?.highContrast ? 'primary' : 'secondary';
-  const moreInfo = config?.devSettings?.moreInfo;
 
   const { tracker, device } = data;
 
@@ -216,15 +269,15 @@ function Row({
             style={{ gridTemplateColumns }}
             onClick={() => clickedTracker(tracker)}
           >
-            <Cell first>
+            <Cell first last={last === 'name'}>
               <TrackerNameCell tracker={tracker} warning={warning} />
             </Cell>
-            <Cell>
+            <Cell show={show('type')} last={last === 'type'}>
               <Typography color={fontColor}>
                 {device?.hardwareInfo?.manufacturer || '--'}
               </Typography>
             </Cell>
-            <Cell>
+            <Cell show={show('battery')} last={last === 'battery'}>
               {device?.hardwareStatus?.batteryPctEstimate != null && (
                 <TrackerBattery
                   value={device.hardwareStatus.batteryPctEstimate / 100}
@@ -236,7 +289,7 @@ function Row({
                 />
               )}
             </Cell>
-            <Cell>
+            <Cell show={show('ping')} last={last === 'ping'}>
               {(device?.hardwareStatus?.rssi != null ||
                 device?.hardwareStatus?.ping != null) && (
                 <TrackerWifi
@@ -252,12 +305,12 @@ function Row({
                 />
               )}
             </Cell>
-            <Cell>
+            <Cell show={show('tps')} last={last === 'tps'}>
               {tracker.tps && (
                 <Typography color={fontColor}>{tracker.tps}</Typography>
               )}
             </Cell>
-            <Cell>
+            <Cell show={show('rotation')} last={last === 'rotation'}>
               <TrackerRotCell
                 tracker={tracker}
                 precise={config?.devSettings?.preciseRotation}
@@ -265,31 +318,31 @@ function Row({
                 color={fontColor}
               />
             </Cell>
-            <Cell last={!moreInfo}>
+            <Cell show={show('temp')} last={last === 'temp'}>
               {tracker?.temp && tracker?.temp?.temp != 0 && (
                 <Typography color={fontColor} whitespace="whitespace-nowrap">
                   {tracker.temp.temp.toFixed(2)}
                 </Typography>
               )}
             </Cell>
-            <Cell show={moreInfo}>
+            <Cell show={show('accel')} last={last === 'accel'}>
               {tracker.linearAcceleration && (
                 <Typography color={fontColor} whitespace="whitespace-nowrap">
                   {formatVector3(tracker.linearAcceleration, 1)}
                 </Typography>
               )}
             </Cell>
-            <Cell show={moreInfo}>
+            <Cell show={show('position')} last={last === 'position'}>
               {tracker.position && (
                 <Typography color={fontColor} whitespace="whitespace-nowrap">
                   {formatVector3(tracker.position, 2)}
                 </Typography>
               )}
             </Cell>
-            <Cell show={moreInfo}>
+            <Cell show={show('stayAligned')} last={last === 'stayAligned'}>
               <StayAlignedInfo color={fontColor} tracker={tracker} />
             </Cell>
-            <Cell last={moreInfo} show={moreInfo}>
+            <Cell show={show('url')} last={last === 'url'}>
               <Typography color={fontColor} whitespace="whitespace-nowrap">
                 udp://
                 {IPv4.fromNumber(
@@ -331,48 +384,120 @@ export function TrackersTable({
 
   const moreInfo = config?.devSettings?.moreInfo;
 
-  const gridTemplateColumns = useMemo(() => {
-    const cols = [
-      'minmax(15rem, 1.5fr)', // Name
-      '9rem', // Type
-      '9rem', // Battery
-      '9rem', // Ping (w-24)
-      '5rem', // TPS
-      config?.devSettings?.preciseRotation ? '11rem' : '9rem', // Rotation
-      '9rem', // Temp
-    ];
+  // Width of the table, to hide the columns that don't fit
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => setWidth(el.clientWidth));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
-    if (moreInfo) {
-      cols.push('9rem'); // Linear Acc
-      cols.push('9rem'); // Position
-      cols.push('9rem'); // Stay Aligned
-      cols.push('11rem'); // URL
+  const { gridTemplateColumns, layout } = useMemo(() => {
+    const widths: Record<Column, number> = {
+      name: 13,
+      type: 9,
+      battery: 8,
+      ping: 8.5,
+      tps: 5,
+      rotation: config?.devSettings?.preciseRotation ? 11 : 9,
+      temp: 9,
+      accel: 9,
+      position: 9,
+      stayAligned: 9,
+      url: 11,
+    };
+    const visible = new Set<Column>(
+      COLUMN_ORDER.filter(
+        (col) =>
+          moreInfo || !['accel', 'position', 'stayAligned', 'url'].includes(col)
+      )
+    );
+    const rem =
+      parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    // padding around the table and margin after the last column
+    const available = width / rem - 1.75;
+    const total = () => [...visible].reduce((sum, col) => sum + widths[col], 0);
+    for (const col of HIDE_ORDER) {
+      if (width === 0 || total() <= available) break;
+      visible.delete(col);
     }
 
-    return cols.join(' ');
-  }, [config?.devSettings?.preciseRotation, moreInfo]);
+    const shown = COLUMN_ORDER.filter((col) => visible.has(col));
+    return {
+      gridTemplateColumns: shown
+        .map((col) =>
+          col === 'name' ? 'minmax(13rem, 1.5fr)' : `${widths[col]}rem`
+        )
+        .join(' '),
+      layout: {
+        show: (col: Column) => visible.has(col),
+        last: shown[shown.length - 1],
+      },
+    };
+  }, [config?.devSettings?.preciseRotation, moreInfo, width]);
+  const { show, last } = layout;
 
   return (
-    <div className="w-full overflow-x-auto py-2 px-2">
+    <div ref={containerRef} className="w-full overflow-x-auto py-2 px-2">
       <div className="min-w-fit">
         <div className="grid items-center mb-1" style={{ gridTemplateColumns }}>
-          <Header name={'tracker-table-column-name'} first />
-          <Header name={'tracker-table-column-type'} />
-          <Header name={'tracker-table-column-battery'} />
-          <Header name={'tracker-table-column-ping'} />
-          <Header name={'tracker-table-column-tps'} />
-          <Header name={'tracker-table-column-rotation'} />
-          <Header name={'tracker-table-column-temperature'} last={!moreInfo} />
+          <Header
+            name={'tracker-table-column-name'}
+            first
+            last={last === 'name'}
+          />
+          <Header
+            name={'tracker-table-column-type'}
+            show={show('type')}
+            last={last === 'type'}
+          />
+          <Header
+            name={'tracker-table-column-battery'}
+            show={show('battery')}
+            last={last === 'battery'}
+          />
+          <Header
+            name={'tracker-table-column-ping'}
+            show={show('ping')}
+            last={last === 'ping'}
+          />
+          <Header
+            name={'tracker-table-column-tps'}
+            show={show('tps')}
+            last={last === 'tps'}
+          />
+          <Header
+            name={'tracker-table-column-rotation'}
+            show={show('rotation')}
+            last={last === 'rotation'}
+          />
+          <Header
+            name={'tracker-table-column-temperature'}
+            show={show('temp')}
+            last={last === 'temp'}
+          />
           <Header
             name={'tracker-table-column-linear-acceleration'}
-            show={moreInfo}
+            show={show('accel')}
+            last={last === 'accel'}
           />
-          <Header name={'tracker-table-column-position'} show={moreInfo} />
-          <Header name={'tracker-table-column-stay_aligned'} show={moreInfo} />
+          <Header
+            name={'tracker-table-column-position'}
+            show={show('position')}
+            last={last === 'position'}
+          />
+          <Header
+            name={'tracker-table-column-stay_aligned'}
+            show={show('stayAligned')}
+            last={last === 'stayAligned'}
+          />
           <Header
             name={'tracker-table-column-url'}
-            show={moreInfo}
-            last={moreInfo}
+            show={show('url')}
+            last={last === 'url'}
           />
         </div>
         <div className="flex flex-col gap-y-0">
@@ -383,6 +508,7 @@ export function TrackersTable({
               data={data}
               highlightedTrackers={highlightedTrackers}
               gridTemplateColumns={gridTemplateColumns}
+              layout={layout}
             />
           ))}
         </div>

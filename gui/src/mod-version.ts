@@ -19,6 +19,7 @@ export const MOD_CHANGELOG: ModChangelogEntry[] = [
       'Garder Aligné : nouvelle posture « allongé dans le lit » (Réglages > Garder Aligné). Appuie sur Enregistrer, allonge-toi sur le dos, elle est prise au bout de 5 s. Sans elle, allongé utilise la posture au sol comme avant.',
       'Mode 5 capteurs : de retour comme à l’origine, avec le capteur du torse (poitrine + jambes). Le mode « hanche seule avec torse virtuel » est retiré.',
       'Nouvelle page « Attribuer des capteurs » comme dans SlimeVR v22 : la liste des capteurs à gauche, tu les glisses sur le corps (ou clique un emplacement puis un capteur, ou tape deux fois le capteur), onglets Corps / Doigts, bouton Gauche ⇄ Droite, « Afficher toutes les parties du corps », message des capteurs qui manquent. Pour remettre un capteur dans la liste, glisse-le hors du corps.',
+      'Mode fenêtre : le tableau des capteurs de l’accueil cache les colonnes qui ne rentrent pas (Type, Temp., puis Rotation…) au lieu de défiler sur le côté, le panneau de gauche est un peu plus étroit, et les boutons de réinitialisation ne débordent plus dans une petite fenêtre.',
       'Plus fluide quand le Wi-Fi d’un capteur a un raté : pendant la coupure le membre ne part plus tout seul (plus de prédiction dans le vide), et quand il revient il glisse jusqu’à sa place au lieu de sauter (sauf en mode Origine).',
       'Les capteurs restent mieux connectés : le serveur leur parle 10 fois par seconde au lieu de 2, donc avec un Wi-Fi qui perd des paquets ils décrochent beaucoup moins souvent.',
     ],
