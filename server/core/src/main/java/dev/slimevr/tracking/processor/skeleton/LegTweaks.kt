@@ -87,6 +87,15 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		private const val IMU_LOCK_ACCEL = 1.0f // m/s^2, linear acceleration
 		private const val IMU_LOCK_GYRO = 0.6f // rad/s (~35 deg/s)
 		private const val IMU_LOCK_DELAY = 0.06f // s still before locking
+
+		// A locked foot only lets go on a clear move (lifting the foot), not
+		// on the small rolls and shakes of the feet when the hips move a lot
+		private const val IMU_UNLOCK_ACCEL = 2.0f // m/s^2
+		private const val IMU_UNLOCK_GYRO = 1.2f // rad/s (~70 deg/s)
+
+		// Safety: a foot slid slowly on the floor still follows the tracker
+		private const val IMU_LOCK_MAX_DRIFT = 0.3f // m, sideways from the lock
+		private const val IMU_RELOCK_MAX_OFFSET = 0.1f // m, back near the tracker first
 		private const val IMU_LOCK_KNEE_WEIGHT = 0.8f // knee follows the locked foot
 	}
 
@@ -578,14 +587,17 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 	}
 
 	/**
-	 * SlimeVR Mod: pelvis tilted less than ~60 deg (standing, walking,
-	 * crouching). Lying in bed the hips are high enough to look "standing" to
-	 * the height check, so the pelvis angle is checked too.
+	 * SlimeVR Mod: not lying down. Lying in bed the hips are high enough to
+	 * look "standing" to the height check, so the pelvis angle is checked
+	 * too: tilted more than ~60 deg is lying, unless the belly faces the
+	 * floor, which is bending forward (standing or sitting) with the feet
+	 * still on the floor.
 	 */
 	private fun isPelvisUpright(): Boolean {
 		val hip = skeleton.hipBone
 		val rot = hip.getLocalRotation() * hip.rotationOffset.inv()
-		return -rot.sandwich(Vector3.NEG_Y).y > PELVIS_UPRIGHT_FOR_LOCK
+		if (-rot.sandwich(Vector3.NEG_Y).y > PELVIS_UPRIGHT_FOR_LOCK) return true
+		return rot.sandwich(Vector3(0f, 0f, -1f)).y < -PELVIS_UPRIGHT_FOR_LOCK
 	}
 
 	private fun imuLockFoot(
@@ -602,11 +614,17 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		state.previousRotation = rotation
 
 		val still = !kneeling && accel < IMU_LOCK_ACCEL && turnSpeed < IMU_LOCK_GYRO
+		val moving = kneeling || accel > IMU_UNLOCK_ACCEL || turnSpeed > IMU_UNLOCK_GYRO
 		state.stillTime = if (still) state.stillTime + dt else 0f
+		val drift = state.lockPosition - position
+		val drifted = drift.x * drift.x + drift.z * drift.z > IMU_LOCK_MAX_DRIFT * IMU_LOCK_MAX_DRIFT
+		val nearTracker = state.offset.x * state.offset.x + state.offset.z * state.offset.z <
+			IMU_RELOCK_MAX_OFFSET * IMU_RELOCK_MAX_OFFSET
 
-		if (state.locked && !still) {
+		if (state.locked && (moving || drifted)) {
 			state.locked = false
-		} else if (!state.locked && state.stillTime >= IMU_LOCK_DELAY) {
+			state.stillTime = 0f
+		} else if (!state.locked && state.stillTime >= IMU_LOCK_DELAY && nearTracker) {
 			// Lock where the foot is shown now, so there is no jump
 			state.locked = true
 			state.lockPosition = position + state.offset
