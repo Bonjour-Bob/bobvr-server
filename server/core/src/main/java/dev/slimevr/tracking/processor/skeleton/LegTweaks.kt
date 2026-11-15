@@ -102,6 +102,7 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		// out. Forgetting the old speed keeps tracker noise from adding up.
 		private const val IMU_UNLOCK_SLIDE_SPEED = 0.15f // m/s
 		private const val IMU_SLIDE_MEMORY = 0.3f // s
+
 		// No relock while the foot is still shown moving (mid-glide)
 		private const val IMU_RELOCK_MAX_FOOT_SPEED = 0.15f // m/s
 
@@ -717,8 +718,11 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		if (state.locked && (moving || drifted)) {
 			state.locked = false
 			state.stillTime = 0f
-		} else if (!state.locked && state.stillTime >= IMU_LOCK_DELAY && nearTracker &&
-			!sliding && footSpeed < IMU_RELOCK_MAX_FOOT_SPEED
+		} else if (!state.locked &&
+			state.stillTime >= IMU_LOCK_DELAY &&
+			nearTracker &&
+			!sliding &&
+			footSpeed < IMU_RELOCK_MAX_FOOT_SPEED
 		) {
 			// Lock where the foot is shown now, so there is no jump
 			state.locked = true
