@@ -96,6 +96,15 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		private const val IMU_UNLOCK_ACCEL = 3.0f // m/s^2
 		private const val IMU_UNLOCK_PUSH_TIME = 0.05f // s above IMU_UNLOCK_ACCEL
 
+		// A foot slid on the floor (dance glides, dragging steps) neither
+		// tilts nor pushes hard, but it keeps going one way: its sideways
+		// acceleration adds up to a speed, the shakes of a planted foot cancel
+		// out. Forgetting the old speed keeps tracker noise from adding up.
+		private const val IMU_UNLOCK_SLIDE_SPEED = 0.15f // m/s
+		private const val IMU_SLIDE_MEMORY = 0.3f // s
+		// No relock while the foot is still shown moving (mid-glide)
+		private const val IMU_RELOCK_MAX_FOOT_SPEED = 0.15f // m/s
+
 		// Safety: a foot slid slowly on the floor still follows the tracker
 		private const val IMU_LOCK_MAX_DRIFT = 0.3f // m, sideways from the lock
 		private const val IMU_RELOCK_MAX_OFFSET = 0.1f // m, back near the tracker first
@@ -160,6 +169,8 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		var lockRotation = Quaternion.IDENTITY
 		var lockLeg = Vector3.NULL
 		var previousLeg = Vector3.NULL
+		var previousPosition = Vector3.NULL
+		var slideVelocity = Vector3.NULL
 		var pushTime = 0f
 		var offset = Vector3.NULL
 		var previousRotation: Quaternion? = null
@@ -226,6 +237,7 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 			lock.locked = false
 			lock.stillTime = 0f
 			lock.pushTime = 0f
+			lock.slideVelocity = Vector3.NULL
 			lock.offset = Vector3.NULL
 			lock.previousRotation = null
 		}
@@ -674,6 +686,13 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 	): Vector3 {
 		// Some firmwares send the acceleration with gravity, some without
 		val accel = acceleration.len().let { if (it > 5f) abs(it - 9.81f) else it }
+		// With gravity in it the sideways part can't be trusted, no slide then
+		val sideways = if (acceleration.len() > 5f) Vector3.NULL else Vector3(acceleration.x, 0f, acceleration.z)
+		state.slideVelocity = (state.slideVelocity + sideways * dt) * exp(-dt / IMU_SLIDE_MEMORY)
+		val sliding = state.slideVelocity.len() > IMU_UNLOCK_SLIDE_SPEED
+		val shown = position - state.previousPosition
+		state.previousPosition = position
+		val footSpeed = sqrt(shown.x * shown.x + shown.z * shown.z) / dt
 		val turnSpeed = state.previousRotation?.let { rotation.angleToR(it) / dt } ?: 0f
 		state.previousRotation = rotation
 
@@ -687,6 +706,7 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		state.stillTime = if (still) state.stillTime + dt else 0f
 		state.pushTime = if (accel > IMU_UNLOCK_ACCEL) state.pushTime + dt else 0f
 		val moving = kneeling ||
+			sliding ||
 			state.pushTime >= IMU_UNLOCK_PUSH_TIME ||
 			(state.locked && (slid || tiltBetween(state.lockRotation, rotation) > IMU_UNLOCK_TILT))
 		val drift = state.lockPosition - position
@@ -697,7 +717,9 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		if (state.locked && (moving || drifted)) {
 			state.locked = false
 			state.stillTime = 0f
-		} else if (!state.locked && state.stillTime >= IMU_LOCK_DELAY && nearTracker) {
+		} else if (!state.locked && state.stillTime >= IMU_LOCK_DELAY && nearTracker &&
+			!sliding && footSpeed < IMU_RELOCK_MAX_FOOT_SPEED
+		) {
 			// Lock where the foot is shown now, so there is no jump
 			state.locked = true
 			state.lockPosition = position + state.offset
