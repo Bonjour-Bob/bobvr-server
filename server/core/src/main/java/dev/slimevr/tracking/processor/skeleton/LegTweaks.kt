@@ -101,6 +101,14 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		private const val IMU_RELOCK_MAX_OFFSET = 0.1f // m, back near the tracker first
 		private const val IMU_LOCK_KNEE_WEIGHT = 0.8f // knee follows the locked foot
 
+		// Seated, a foot slid on the floor (without lifting it) doesn't tilt
+		// or shake: it is seen by the leg changing shape, the foot moving
+		// away from where it was under the hips
+		private const val SEATED_THIGH_DOWN_MAX = -0.6f // thigh less than ~37 deg below flat
+		private const val SEATED_SHIN_UPRIGHT = 0.75f // shin within ~40 deg of upright (not a squat)
+		private const val SEATED_UNLOCK_SLIDE = 0.06f // m
+		private const val SEATED_LEG_STILL_SPEED = 0.1f // m/s, relock once the leg stops
+
 		// shortcut: the v21 protocol has no free setting for a mod profile, so
 		// the lap dance profile is marked by a skating correction strength the
 		// sliders can't reach (10 % steps). Upgrade if the mod gets its own field.
@@ -150,6 +158,8 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		var stillTime = 0f
 		var lockPosition = Vector3.NULL
 		var lockRotation = Quaternion.IDENTITY
+		var lockLeg = Vector3.NULL
+		var previousLeg = Vector3.NULL
 		var pushTime = 0f
 		var offset = Vector3.NULL
 		var previousRotation: Quaternion? = null
@@ -592,6 +602,8 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 			leftFootAcceleration,
 			dt,
 			(leftKneeling && !lapDance) || !holdFeet,
+			isSeated(skeleton.leftUpperLegBone, skeleton.leftLowerLegBone),
+			leftFootPosition - hipPosition,
 		)
 		leftKneePosition += kneeShift(leftFootPosition - leftOld, leftKneeling)
 
@@ -604,6 +616,8 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 			rightFootAcceleration,
 			dt,
 			(rightKneeling && !lapDance) || !holdFeet,
+			isSeated(skeleton.rightUpperLegBone, skeleton.rightLowerLegBone),
+			rightFootPosition - hipPosition,
 		)
 		rightKneePosition += kneeShift(rightFootPosition - rightOld, rightKneeling)
 	}
@@ -634,6 +648,20 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		return rot.sandwich(Vector3(0f, 0f, -1f)).y < -PELVIS_UPRIGHT_FOR_LOCK
 	}
 
+	/**
+	 * SlimeVR Mod: sitting on a seat with this foot on the floor: thigh close
+	 * to flat and shin close to upright (a deep squat has the shin leaning
+	 * forward, and there the hips move over the planted feet)
+	 */
+	private fun isSeated(thigh: Bone, shin: Bone): Boolean {
+		val thighDir = thigh.getTailPosition() - thigh.getPosition()
+		val shinDir = shin.getTailPosition() - shin.getPosition()
+		if (thighDir.len() < NEARLY_ZERO || shinDir.len() < NEARLY_ZERO) return false
+		return thighDir.y / thighDir.len() > SEATED_THIGH_DOWN_MAX &&
+			shinDir.y / shinDir.len() < -SEATED_SHIN_UPRIGHT
+	}
+
+	/** [leg] is the foot from the hips, before any correction */
 	private fun imuLockFoot(
 		state: ImuFootLock,
 		position: Vector3,
@@ -641,18 +669,26 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		acceleration: Vector3,
 		dt: Float,
 		kneeling: Boolean,
+		seated: Boolean,
+		leg: Vector3,
 	): Vector3 {
 		// Some firmwares send the acceleration with gravity, some without
 		val accel = acceleration.len().let { if (it > 5f) abs(it - 9.81f) else it }
 		val turnSpeed = state.previousRotation?.let { rotation.angleToR(it) / dt } ?: 0f
 		state.previousRotation = rotation
 
-		val still = !kneeling && accel < IMU_LOCK_ACCEL && turnSpeed < IMU_LOCK_GYRO
+		val legSpeed = (leg - state.previousLeg).len() / dt
+		state.previousLeg = leg
+		val legStill = !seated || legSpeed < SEATED_LEG_STILL_SPEED
+		val slide = leg - state.lockLeg
+		val slid = seated && slide.x * slide.x + slide.z * slide.z > SEATED_UNLOCK_SLIDE * SEATED_UNLOCK_SLIDE
+
+		val still = !kneeling && accel < IMU_LOCK_ACCEL && turnSpeed < IMU_LOCK_GYRO && legStill
 		state.stillTime = if (still) state.stillTime + dt else 0f
 		state.pushTime = if (accel > IMU_UNLOCK_ACCEL) state.pushTime + dt else 0f
 		val moving = kneeling ||
 			state.pushTime >= IMU_UNLOCK_PUSH_TIME ||
-			(state.locked && tiltBetween(state.lockRotation, rotation) > IMU_UNLOCK_TILT)
+			(state.locked && (slid || tiltBetween(state.lockRotation, rotation) > IMU_UNLOCK_TILT))
 		val drift = state.lockPosition - position
 		val drifted = drift.x * drift.x + drift.z * drift.z > IMU_LOCK_MAX_DRIFT * IMU_LOCK_MAX_DRIFT
 		val nearTracker = state.offset.x * state.offset.x + state.offset.z * state.offset.z <
@@ -666,6 +702,7 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 			state.locked = true
 			state.lockPosition = position + state.offset
 			state.lockRotation = rotation
+			state.lockLeg = leg
 		}
 
 		val corrected = if (state.locked) {
