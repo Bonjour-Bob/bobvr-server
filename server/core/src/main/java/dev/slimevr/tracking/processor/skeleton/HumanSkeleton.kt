@@ -1053,7 +1053,8 @@ class HumanSkeleton(
 	 * trackers put it, so leaning forward doesn't move the body.
 	 */
 	private fun straightenBackWhenSitting() {
-		if (!modCorrections) return
+		// Lap dance: arching and leaning back while seated are wanted as they are
+		if (!modCorrections || legTweaks.lapDance) return
 		val left = leftUpperLegTracker ?: return
 		val right = rightUpperLegTracker ?: return
 

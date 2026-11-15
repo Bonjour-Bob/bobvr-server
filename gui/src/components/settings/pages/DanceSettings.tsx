@@ -121,12 +121,38 @@ const ORIGIN_PRESET: DanceForm = {
   resets: { yawResetSmoothTime: 0 },
 };
 
-export type ModProfile = 'dance' | 'one-to-one' | 'origin';
+// Mode lap dance : beaucoup de mouvements au sol, assis puis debout. Le sol
+// compte (genoux et pieds ne passent plus dessous), lissage leger pour suivre
+// les hanches rapides. Le serveur le reconnait a cette force de correction,
+// que les curseurs (par pas de 10 %) ne peuvent pas donner (LAP_DANCE_MARK
+// dans LegTweaks.kt) : genoux qui restent au sol a genoux, dos pas redresse
+// assis, pas de mode lit.
+const LAP_DANCE_MARK = 0.35;
+const LAP_DANCE_PRESET: DanceForm = {
+  filtering: { type: FilteringType.SMOOTHING.toString(), amount: 0.1 },
+  toggles: {
+    floorClip: true,
+    skatingCorrection: true,
+    footPlant: false,
+    toeSnap: false,
+    extendedSpine: true,
+    extendedPelvis: true,
+    extendedKnee: true,
+    enforceConstraints: false,
+    modCorrections: true,
+  },
+  legTweaks: { correctionStrength: LAP_DANCE_MARK },
+  drift: { enabled: false, prediction: false, amount: 0.8, maxResets: 6 },
+  resets: { yawResetSmoothTime: 0.2 },
+};
+
+export type ModProfile = 'dance' | 'one-to-one' | 'origin' | 'lapdance';
 
 const PROFILE_PRESETS: Record<ModProfile, DanceForm> = {
   dance: DANCE_PRESET,
   'one-to-one': ONE_TO_ONE_PRESET,
   origin: ORIGIN_PRESET,
+  lapdance: LAP_DANCE_PRESET,
 };
 
 // The backup holds the user's own settings while a profile is on (one backup
@@ -138,7 +164,8 @@ function readActiveProfile(): ModProfile | null {
   if (readBackup() === null) return null;
   try {
     const value = localStorage.getItem(ACTIVE_PROFILE_KEY);
-    if (value === 'one-to-one' || value === 'origin') return value;
+    if (value === 'one-to-one' || value === 'origin' || value === 'lapdance')
+      return value;
     return 'dance';
   } catch {
     return 'dance';

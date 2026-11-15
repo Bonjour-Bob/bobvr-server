@@ -31,6 +31,15 @@ function DanceIcon({ width = 20 }: { width?: number }) {
   );
 }
 
+// SlimeVR Mod : icone du mode lap dance (une chaise)
+function ChairIcon({ width = 20 }: { width?: number }) {
+  return (
+    <svg width={width} height={width} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M6 2h2v10h9a1 1 0 0 1 1 1v9h-2v-8H8v8H6V2Z" />
+    </svg>
+  );
+}
+
 export function PreviewControls({ open }: { open: boolean }) {
   const [userHeight, setUserHeight] = useState('');
   const { currentLocales } = useLocaleConfig();
@@ -45,6 +54,7 @@ export function PreviewControls({ open }: { open: boolean }) {
   const { active: profile, toggle: toggleProfile } = useModProfiles();
   const danceMode = profile === 'dance';
   const originMode = profile === 'origin';
+  const lapDanceMode = profile === 'lapdance';
 
   const { cmFormat } = useMemo(() => {
     const cmFormat = Intl.NumberFormat(currentLocales, {
@@ -155,6 +165,28 @@ export function PreviewControls({ open }: { open: boolean }) {
               onClick={() => toggleProfile('dance')}
             >
               <DanceIcon width={20} />
+            </div>
+          </Tooltip>
+          {/* SlimeVR Mod : mode lap dance (sol, assis puis debout) */}
+          <Tooltip
+            content={
+              <Typography variant="section-title">
+                {lapDanceMode
+                  ? 'Mode lap dance activé (clique pour revenir à tes réglages)'
+                  : 'Activer le mode lap dance : beaucoup de sol, assis puis debout'}
+              </Typography>
+            }
+            preferedDirection="top"
+          >
+            <div
+              className={classNames(
+                'flex justify-center items-center w-10 h-10 rounded-full hover:bg-background-60 cursor-pointer',
+                { 'bg-background-60 text-background-10': lapDanceMode },
+                { 'text-background-30': !lapDanceMode }
+              )}
+              onClick={() => toggleProfile('lapdance')}
+            >
+              <ChairIcon width={20} />
             </div>
           </Tooltip>
           {/* SlimeVR Mod : mode Origine, tout comme SlimeVR de base */}

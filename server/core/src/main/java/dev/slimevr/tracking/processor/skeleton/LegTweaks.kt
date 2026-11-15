@@ -88,15 +88,27 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		private const val IMU_LOCK_GYRO = 0.6f // rad/s (~35 deg/s)
 		private const val IMU_LOCK_DELAY = 0.06f // s still before locking
 
-		// A locked foot only lets go on a clear move (lifting the foot), not
-		// on the small rolls and shakes of the feet when the hips move a lot
-		private const val IMU_UNLOCK_ACCEL = 2.0f // m/s^2
-		private const val IMU_UNLOCK_GYRO = 1.2f // rad/s (~70 deg/s)
+		// A locked foot only lets go on a clear move, not on the shakes and
+		// rolls of a planted foot when the hips move fast or hard: the foot
+		// tilted away from how it was planted (heel or toes lifted), or pushed
+		// for a while (a real step)
+		private const val IMU_UNLOCK_TILT = 0.35f // rad (~20 deg), turning in place doesn't count
+		private const val IMU_UNLOCK_ACCEL = 3.0f // m/s^2
+		private const val IMU_UNLOCK_PUSH_TIME = 0.05f // s above IMU_UNLOCK_ACCEL
 
 		// Safety: a foot slid slowly on the floor still follows the tracker
 		private const val IMU_LOCK_MAX_DRIFT = 0.3f // m, sideways from the lock
 		private const val IMU_RELOCK_MAX_OFFSET = 0.1f // m, back near the tracker first
 		private const val IMU_LOCK_KNEE_WEIGHT = 0.8f // knee follows the locked foot
+
+		// shortcut: the v21 protocol has no free setting for a mod profile, so
+		// the lap dance profile is marked by a skating correction strength the
+		// sliders can't reach (10 % steps). Upgrade if the mod gets its own field.
+		const val LAP_DANCE_MARK = 0.35f
+
+		// Lap dance: the floor is used a lot, so it lets the legs sink less
+		// under it when the hips are low (normally up to 30 cm)
+		private const val LAP_DANCE_DISENGAGEMENT_OFFSET = 0.15f
 	}
 
 	// state variables
@@ -128,11 +140,17 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 	private var rightToeTouched = false
 	private var localizerMode = false
 
+	/** SlimeVR Mod: lap dance profile on (see LAP_DANCE_MARK) */
+	var lapDance = false
+		private set
+
 	// SlimeVR Mod: foot lock from the foot trackers
 	private class ImuFootLock {
 		var locked = false
 		var stillTime = 0f
 		var lockPosition = Vector3.NULL
+		var lockRotation = Quaternion.IDENTITY
+		var pushTime = 0f
 		var offset = Vector3.NULL
 		var previousRotation: Quaternion? = null
 	}
@@ -197,6 +215,7 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		for (lock in listOf(leftImuLock, rightImuLock)) {
 			lock.locked = false
 			lock.stillTime = 0f
+			lock.pushTime = 0f
 			lock.offset = Vector3.NULL
 			lock.previousRotation = null
 		}
@@ -211,6 +230,7 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		if (config == null) return
 
 		updateHyperParameters(config!!.correctionStrength)
+		lapDance = abs(config!!.correctionStrength - LAP_DANCE_MARK) < 0.001f
 		floorClipEnabled =
 			skeleton.humanPoseManager.getToggle(SkeletonConfigToggles.FLOOR_CLIP)
 		alwaysUseFloorclip = config!!.alwaysUseFloorclip
@@ -235,7 +255,7 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 
 		// SlimeVR Mod: lying in bed the floor means nothing (feet and knees
 		// were pushed up and the feet turned flat now and then: jerky legs)
-		val inBed = skeleton.modCorrections && !isPelvisUpright()
+		val inBed = skeleton.modCorrections && !isPelvisUpright() && !lapDance
 
 		// correct foot rotation's (Foot plant & Toe snap)
 		if ((footPlantEnabled || toeSnapEnabled) && !inBed) correctFootRotations()
@@ -553,37 +573,51 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 	/**
 	 * SlimeVR Mod: locks each foot in place while its tracker is still, then
 	 * lets it glide back smoothly when it moves. The knee follows the foot
-	 * most of the way so the leg doesn't stretch. Only when standing: lying in
-	 * bed, sitting or crouching low the feet are never held.
+	 * most of the way so the leg doesn't stretch. Never while lying down.
 	 */
 	private fun lockFeetFromTrackers() {
 		val rate = bufferHead.getTimeDelta() // frames per second
 		if (rate <= 0f) return
 		val dt = 1f / rate
-		val holdFeet = active && isPelvisUpright()
+		// Sitting or crouching low the feet are on the floor too (the trackers
+		// tell when they move), only lying down they are never held
+		val holdFeet = isPelvisUpright()
 
 		val leftOld = leftFootPosition
+		val leftKneeling = isKneeling(leftKneePosition, leftFootPosition)
 		leftFootPosition = imuLockFoot(
 			leftImuLock,
 			leftFootPosition,
 			leftFootRotation,
 			leftFootAcceleration,
 			dt,
-			isKneeling(leftKneePosition, leftFootPosition) || !holdFeet,
+			(leftKneeling && !lapDance) || !holdFeet,
 		)
-		// Sideways the knee already follows the foot (solveLowerBody), add the height
-		leftKneePosition += Vector3(0f, (leftFootPosition.y - leftOld.y) * IMU_LOCK_KNEE_WEIGHT, 0f)
+		leftKneePosition += kneeShift(leftFootPosition - leftOld, leftKneeling)
 
 		val rightOld = rightFootPosition
+		val rightKneeling = isKneeling(rightKneePosition, rightFootPosition)
 		rightFootPosition = imuLockFoot(
 			rightImuLock,
 			rightFootPosition,
 			rightFootRotation,
 			rightFootAcceleration,
 			dt,
-			isKneeling(rightKneePosition, rightFootPosition) || !holdFeet,
+			(rightKneeling && !lapDance) || !holdFeet,
 		)
-		rightKneePosition += Vector3(0f, (rightFootPosition.y - rightOld.y) * IMU_LOCK_KNEE_WEIGHT, 0f)
+		rightKneePosition += kneeShift(rightFootPosition - rightOld, rightKneeling)
+	}
+
+	/**
+	 * SlimeVR Mod: how much the knee moves with the locked foot. Sideways the
+	 * knee already follows the foot (solveLowerBody), so only the height,
+	 * except kneeling in lap dance: the shin lies on the floor, the knee
+	 * stays put with the foot.
+	 */
+	private fun kneeShift(footShift: Vector3, kneeling: Boolean): Vector3 = if (lapDance && kneeling) {
+		footShift
+	} else {
+		Vector3(0f, footShift.y * IMU_LOCK_KNEE_WEIGHT, 0f)
 	}
 
 	/**
@@ -614,8 +648,11 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		state.previousRotation = rotation
 
 		val still = !kneeling && accel < IMU_LOCK_ACCEL && turnSpeed < IMU_LOCK_GYRO
-		val moving = kneeling || accel > IMU_UNLOCK_ACCEL || turnSpeed > IMU_UNLOCK_GYRO
 		state.stillTime = if (still) state.stillTime + dt else 0f
+		state.pushTime = if (accel > IMU_UNLOCK_ACCEL) state.pushTime + dt else 0f
+		val moving = kneeling ||
+			state.pushTime >= IMU_UNLOCK_PUSH_TIME ||
+			(state.locked && tiltBetween(state.lockRotation, rotation) > IMU_UNLOCK_TILT)
 		val drift = state.lockPosition - position
 		val drifted = drift.x * drift.x + drift.z * drift.z > IMU_LOCK_MAX_DRIFT * IMU_LOCK_MAX_DRIFT
 		val nearTracker = state.offset.x * state.offset.x + state.offset.z * state.offset.z <
@@ -628,6 +665,7 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 			// Lock where the foot is shown now, so there is no jump
 			state.locked = true
 			state.lockPosition = position + state.offset
+			state.lockRotation = rotation
 		}
 
 		val corrected = if (state.locked) {
@@ -637,6 +675,17 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 		}
 		state.offset = corrected - position
 		return corrected
+	}
+
+	/**
+	 * SlimeVR Mod: angle between two rotations, without the turn around the
+	 * vertical (a foot turning in place on the floor isn't lifted)
+	 */
+	private fun tiltBetween(from: Quaternion, to: Quaternion): Float {
+		val delta = to * from.inv()
+		val turn = delta.project(Vector3.POS_Y)
+		if (turn.lenSq() < 1e-6f) return delta.angleR()
+		return (delta * turn.unit().inv()).angleR()
 	}
 
 	/**
@@ -982,7 +1031,7 @@ class LegTweaks(private val skeleton: HumanSkeleton) {
 								(floorLevel - cutoff)
 							)
 					) *
-					MAX_DISENGAGEMENT_OFFSET
+					(if (lapDance) LAP_DANCE_DISENGAGEMENT_OFFSET else MAX_DISENGAGEMENT_OFFSET)
 				)
 			return false
 		}
