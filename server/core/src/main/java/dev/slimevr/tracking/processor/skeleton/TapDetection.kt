@@ -1,6 +1,8 @@
 package dev.slimevr.tracking.processor.skeleton
 
 import dev.slimevr.tracking.trackers.Tracker
+import io.github.axisangles.ktmath.Quaternion
+import io.github.axisangles.ktmath.Vector3
 import java.util.*
 
 // class that monitors the acceleration of the waist, hip, chest or upper chest trackers to detect taps
@@ -13,6 +15,11 @@ class TapDetection(
 	// before tap detection will deactivate
 	val maxAllowedMovingTrackers: Int,
 	val tapToComplete: Int,
+	// VitalVR: reset gestures need a still head. A dance move that shakes the
+	// tracker twice (chest pop, floor hit) comes with a moving head, while a
+	// real double tap is done standing still, and a yaw reset with the head
+	// turned or moving would leave the whole body turned (decalage)
+	val needsStillHead: Boolean = false,
 	val onTapCompleted: () -> Unit,
 ) {
 
@@ -20,12 +27,16 @@ class TapDetection(
 	private val tapTimestamps = LinkedList<Float>()
 	private var timeWindowNS = 0.3f * tapToComplete * NS_CONVERTER
 	private var waitForLowAccel = false
+	private var headPositionAtFirstTap: Vector3? = null
+	private var headRotationAtFirstTap: Quaternion? = null
 
 	// reset the lists for detecting taps
 	fun reset() {
 		tapTimestamps.clear()
 		accelList.clear()
 		waitForLowAccel = false
+		headPositionAtFirstTap = null
+		headRotationAtFirstTap = null
 	}
 
 	// main function for tap detection
@@ -44,6 +55,10 @@ class TapDetection(
 		if (accelDelta > NEEDED_ACCEL_DELTA && !waitForLowAccel) {
 			// after a tap is added to the list, a lower acceleration
 			// is needed before another tap can be added
+			if (tapTimestamps.isEmpty()) {
+				headPositionAtFirstTap = skeleton.headTracker?.position
+				headRotationAtFirstTap = skeleton.headTracker?.getRotation()
+			}
 			tapTimestamps.add(time)
 			waitForLowAccel = true
 		}
@@ -69,9 +84,22 @@ class TapDetection(
 		}
 
 		if (tapTimestamps.size >= tapToComplete) {
-			onTapCompleted()
+			if (!needsStillHead || !headMoved()) onTapCompleted()
 			reset()
 		}
+	}
+
+	// VitalVR: did the head move or turn since the first tap of the series
+	private fun headMoved(): Boolean {
+		val head = skeleton.headTracker ?: return false
+		val position = headPositionAtFirstTap
+		if (head.hasPosition && position != null && (head.position - position).len() > HEAD_MAX_MOVE) {
+			return true
+		}
+		val rotation = headRotationAtFirstTap ?: return false
+		// Only turning counts: looking down at the tracker to tap it is fine
+		val turn = (head.getRotation() * rotation.inv()).project(Vector3.POS_Y)
+		return turn.angleR() > HEAD_MAX_TURN
 	}
 
 	private val accelDelta: Float
@@ -123,5 +151,9 @@ class TapDetection(
 		private const val ALLOWED_BODY_ACCEL = 2.5f
 		private const val ALLOWED_BODY_ACCEL_SQUARED = ALLOWED_BODY_ACCEL * ALLOWED_BODY_ACCEL
 		private const val CLUMP_TIME_NS = 0.06f * NS_CONVERTER
+
+		// VitalVR: how much the head may move and turn during a reset gesture
+		private const val HEAD_MAX_MOVE = 0.25f
+		private val HEAD_MAX_TURN = Math.toRadians(30.0).toFloat()
 	}
 }

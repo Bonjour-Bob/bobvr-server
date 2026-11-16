@@ -8,7 +8,10 @@ import { existsSync } from 'node:fs';
 import { options } from './cli';
 
 const javaBin = getPlatform() === 'windows' ? 'java.exe' : 'java';
-export const CONFIG_IDENTIFIER = 'dev.slimevr.SlimeVR';
+// VitalVR : ses propres reglages, a part de SlimeVR et de BOBvr
+export const CONFIG_IDENTIFIER = 'dev.vitalvr.VitalVR';
+// Dossier de SlimeVR / BOBvr, d'ou les reglages sont copies au 1er lancement
+export const ORIGINAL_CONFIG_IDENTIFIER = 'dev.slimevr.SlimeVR';
 
 export const getGuiDataFolder = () => {
   const platform = getPlatform();

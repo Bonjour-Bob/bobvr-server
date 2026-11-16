@@ -33,9 +33,7 @@ import { OSCRouterSettings } from './components/settings/pages/OSCRouterSettings
 import { VMCSettings } from './components/settings/pages/VMCSettings';
 import { MountingChoose } from './components/onboarding/pages/mounting/MountingChoose';
 import { VersionUpdateModal } from './components/VersionUpdateModal';
-import { ModUpdateAlert } from './components/ModUpdateAlert';
 import { ModDefaults } from './components/ModDefaults';
-import semver from 'semver';
 import { useBreakpoint } from './hooks/breakpoint';
 import { VRModePage } from './components/vr-mode/VRModePage';
 import { InterfaceSettings } from './components/settings/pages/InterfaceSettings';
@@ -82,7 +80,6 @@ function Layout() {
     <>
       <SerialDetectionModal />
       <VersionUpdateModal />
-      <ModUpdateAlert />
       <ModDefaults />
       <UnknownDeviceModal />
       <UdevRulesModal />
@@ -145,8 +142,39 @@ function Layout() {
             }
           >
             <Route path="firmware-tool" element={<FirmwareToolSettings />} />
-            <Route path="trackers" element={<GeneralSettings />} />
+            {/* VitalVR : une page par partie des reglages, comme la v22 */}
+            <Route path="profiles" element={<DanceSettings />} />
             <Route path="dance" element={<DanceSettings />} />
+            <Route
+              path="tracking"
+              element={
+                <GeneralSettings sections={['mechanics', 'fksettings']} />
+              }
+            />
+            <Route
+              path="resets"
+              element={<GeneralSettings sections={['gestureControl']} />}
+            />
+            <Route
+              path="stay-aligned"
+              element={<GeneralSettings sections={['stayaligned']} />}
+            />
+            <Route
+              path="trackers"
+              element={<GeneralSettings sections={['steamvr']} />}
+            />
+            <Route
+              path="appearance"
+              element={<InterfaceSettings sections={['appearance']} />}
+            />
+            <Route
+              path="behavior"
+              element={<InterfaceSettings sections={['behavior']} />}
+            />
+            <Route
+              path="notifications"
+              element={<InterfaceSettings sections={['notifications']} />}
+            />
             <Route path="serial" element={<Serial />} />
             <Route path="osc/router" element={<OSCRouterSettings />} />
             <Route path="osc/vrchat" element={<VRCOSCSettings />} />
@@ -203,18 +231,9 @@ function Layout() {
 
 export default function App() {
   const websocketAPI = useProvideWebsocketApi();
-  const [updateFound, setUpdateFound] = useState('');
-  // SlimeVR Mod : l'animation de demarrage reste affichee 2 secondes
+  const [updateFound] = useState('');
+  // VitalVR : le logo de demarrage reste affiche 2 secondes
   const [splashDone, setSplashDone] = useState(false);
-  // SlimeVR Mod : 3 secondes de musique de Bob au demarrage
-  useEffect(() => {
-    const music = new Audio('/sounds/bob-demarrage.mp3');
-    music.volume = 0.6;
-    music.play().catch(() => {
-      // lecture bloquee (pas de son disponible) : on ignore
-    });
-    return () => music.pause();
-  }, []);
   useEffect(() => {
     const timer = setTimeout(() => setSplashDone(true), 2000);
     return () => clearTimeout(timer);
@@ -237,38 +256,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeydown);
   }, []);
 
-  useEffect(() => {
-    // don't show update stuff when on android
-    if (window.__ANDROID__?.isThere()) return;
-
-    if (!semver.valid(__VERSION_TAG__)) {
-      log(
-        { version: __VERSION_TAG__ || 'development' },
-        'Non semver version, skipping the server update check'
-      );
-      return;
-    }
-
-    async function fetchReleases() {
-      const releases = await fetch(
-        `https://api.github.com/repos/${GH_REPO}/releases`
-      )
-        .then((res) => res.json())
-        .catch(() => null)
-        .then((json: any[]) => json.filter((rl) => rl?.prerelease === false));
-
-      if (!releases) return;
-
-      if (typeof releases[0].tag_name !== 'string') return;
-
-      const version = semver.coerce(releases[0].tag_name);
-
-      if (version && semver.gt(version, __VERSION_TAG__)) {
-        setUpdateFound(releases[0].tag_name);
-      }
-    }
-    fetchReleases().catch((e) => error(e, 'failed to fetch releases'));
-  }, []);
+  // VitalVR : pas de recherche de mise a jour de SlimeVR officiel
 
   if (electron.isElectron) {
     useEffect(() => {

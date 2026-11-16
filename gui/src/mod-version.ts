@@ -1,8 +1,9 @@
-// SlimeVR Mod : numero de version affiche en haut de l'app.
+// VitalVR : numero de version affiche en haut de l'app (l'historique de
+// BOBvr en dessous est inclus dans VitalVR).
 // Grosse mise a jour : +0.1 (0.7 -> 0.8), major: true.
 // Petite mise a jour (correctif, petit reglage) : +0.0.1 (0.7 -> 0.7.1).
 // Ajouter les nouveautes en haut de MOD_CHANGELOG a chaque fois.
-export const MOD_VERSION = '0.9.3';
+export const MOD_VERSION = '1.0';
 
 export type ModChangelogEntry = {
   version: string;
@@ -11,6 +12,17 @@ export type ModChangelogEntry = {
 };
 
 export const MOD_CHANGELOG: ModChangelogEntry[] = [
+  {
+    version: '1.0',
+    major: true,
+    changes: [
+      'VitalVR : une appli à part, avec son nom, son logo, son thème et son raccourci sur le Bureau. Elle a ses propres réglages : au premier lancement elle reprend ceux de SlimeVR / BOBvr, ensuite chacun garde les siens.',
+      'Base SlimeVR v21.1.0 avec le pilote SteamVR de la v21 (rien à mettre à jour dans SteamVR), plus toutes les corrections de BOBvr 0.9.3 : pieds qui restent plantés quand les hanches bougent, glissés de pieds debout et assis, se pencher assis, lit sans saccades, posture Garder Aligné allongé, retour en douceur après une coupure Wi-Fi.',
+      'Menus comme SlimeVR v22 : réglages rangés par pages (Profils, Suivi, Réinitialisations et gestes, Garder Aligné, SteamVR, Apparence, Comportement, Notifications, Sorties…), page « Attribuer des capteurs » de la v22, et choix du profil en haut de la fenêtre.',
+      'Profils d’un clic : Normal (tous les jours : debout, assis, couché, marcher), Danse, Lap dance (sol, assis puis debout, genoux au sol, cambrures) et Origine. « Mes réglages » ramène tes propres réglages.',
+      'Moins de décalage en dansant : les doubles tapes de réinitialisation (recentrer, réinitialisation complète, montage) ne comptent que si la tête reste en place (moins de 25 cm et 30° de rotation). Un mouvement de danse qui secoue deux fois le capteur (coup de poitrine, impact au sol) ne recentre plus le corps de travers.',
+    ],
+  },
   {
     version: '0.9.3',
     changes: [

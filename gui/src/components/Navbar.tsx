@@ -119,9 +119,8 @@ export function Navbar() {
         <MainLinks />
       </div>
       <NavButton
-        to="/settings/trackers"
+        to="/settings/profiles"
         match="/settings/*"
-        state={{ scrollTo: 'steamvr' }}
         icon={<GearIcon />}
       >
         {l10n.getString('navbar-settings')}

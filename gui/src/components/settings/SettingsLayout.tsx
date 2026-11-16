@@ -19,8 +19,24 @@ export function SettingSelectorMobile() {
   const links: { label: string; value: { url: string; scrollTo?: string } }[] =
     [
       {
-        label: l10n.getString('settings-sidebar-general'),
-        value: { url: '/settings/trackers', scrollTo: 'steamvr' },
+        label: l10n.getString('settings-sidebar-profiles'),
+        value: { url: '/settings/profiles' },
+      },
+      {
+        label: l10n.getString('settings-sidebar-tracking'),
+        value: { url: '/settings/tracking' },
+      },
+      {
+        label: l10n.getString('settings-sidebar-resets'),
+        value: { url: '/settings/resets' },
+      },
+      {
+        label: l10n.getString('settings-sidebar-stay_aligned'),
+        value: { url: '/settings/stay-aligned' },
+      },
+      {
+        label: l10n.getString('settings-sidebar-steamvr'),
+        value: { url: '/settings/trackers' },
       },
       {
         label: l10n.getString('settings-sidebar-interface'),

@@ -1,12 +1,11 @@
-# Installeur Windows de BOBvr 0.9 (version modifiee, separee de SlimeVR officiel
-# et de BOBvr 1.1 : autre appId, autre dossier, autre raccourci, les deux
-# peuvent etre installees en meme temps)
-appId: dev.slimevr.SlimeVR.bobvr09
-productName: BOBvr 0.9
-executableName: BOBvr 0.9
+# Installeur Windows de VitalVR (appli a part de SlimeVR et de BOBvr : autre
+# appId, autre dossier, autre raccourci, autres reglages)
+appId: dev.vitalvr.VitalVR
+productName: VitalVR
+executableName: VitalVR
 
 directories:
-  output: dist/mod
+  output: dist/vitalvr
 
 asar: true
 asarUnpack:
@@ -35,28 +34,28 @@ win:
     - from: "../server/core/resources"
       to: "."
       filter: ["**/*"]
-    # Java embarque, pour ne rien avoir a installer sur l'autre PC
-    - from: "./build-mod/jre"
+    # Java embarque, rien a installer
+    - from: "./build-vitalvr/jre"
       to: "jre"
-    # Script qui enregistre SlimeVR Mod comme appli SteamVR (lancement auto)
+    # Liaisons SteamVR de SlimeVR v21.1.0 (comme l'officiel)
+    - from: "./build-vitalvr/bindings"
+      to: "."
+    # Enregistre VitalVR comme appli SteamVR (lancement auto possible)
     - from: "./electron/resources/steamvr-autostart.ps1"
       to: "steamvr-autostart.ps1"
-    # Pilote SteamVR, enregistre aupres de SteamVR a l'installation
-    - from: "./build-mod/slimevr-openvr-driver-win64"
-      to: "slimevr-openvr-driver-win64"
+# Pas de pilote SteamVR dans l'installeur : VitalVR parle au pilote de la v21
+# deja installe sous le nom « slimevr_09 » (Activer-Pilote-BOBvr-0.9.bat)
 
-# Reinstaller une version plus recente par-dessus met BOBvr 0.9 a jour :
-# meme appId, l'ancienne version est remplacee et les reglages (dans
-# %APPDATA%\dev.slimevr.SlimeVR, partages avec BOBvr 1.1 qui utilise
-# d'autres fichiers) sont gardes. Le numero de version est donne
-# par Creer-Installeur-SlimeVR-Mod.bat (date et heure de creation).
+# Reinstaller par-dessus met VitalVR a jour (meme appId), les reglages
+# (%APPDATA%\dev.vitalvr.VitalVR) sont gardes. Le numero de version est donne
+# par Creer-Installeur-VitalVR.bat (date et heure de creation).
 nsis:
-  artifactName: "BOBvr-0.9-Installeur.${ext}"
+  artifactName: "VitalVR-Installeur.${ext}"
   deleteAppDataOnUninstall: false
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: always
   createStartMenuShortcut: true
-  shortcutName: "BOBvr 0.9"
+  shortcutName: "VitalVR"
   include: "./electron/resources/installer-mod.nsh"

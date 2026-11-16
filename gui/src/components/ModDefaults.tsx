@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { useConfig } from '@/hooks/config';
 
-// SlimeVR Mod : reglages de base du mod, appliques une seule fois par PC
+// VitalVR : reglages de base, appliques une seule fois par PC
 // (ensuite l'utilisateur peut les changer librement).
-const THEME_DEFAULT_KEY = 'slimevr-mod-theme-default';
+const THEME_DEFAULT_KEY = 'vitalvr-theme-default';
 
 export function ModDefaults() {
   const { config, setConfig } = useConfig();
@@ -22,8 +22,8 @@ export function ModDefaults() {
     } catch {
       // ignore
     }
-    // Theme noir et blanc par defaut
-    if (config.theme !== 'noir-blanc') setConfig({ theme: 'noir-blanc' });
+    // Theme VitalVR par defaut (meme si les reglages viennent de BOBvr)
+    if (config.theme !== 'vitalvr') setConfig({ theme: 'vitalvr' });
   }, [config]);
 
   return null;

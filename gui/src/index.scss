@@ -434,6 +434,33 @@ a,
   user-select: none;
 }
 
+/* VitalVR : fond bleu nuit, accents menthe et cyan (comme le logo) */
+:root[data-theme='vitalvr'] {
+  --background-10: 236, 248, 247;
+  --background-20: 168, 196, 200;
+  --background-30: 112, 142, 150;
+  --background-40: 64, 90, 98;
+  --background-50: 36, 56, 63;
+  --background-60: 24, 39, 45;
+  --background-70: 16, 28, 33;
+  --background-80: 10, 19, 23;
+  --background-90: 5, 10, 13;
+
+  --accent-background-10: 150, 245, 210;
+  --accent-background-20: 46, 214, 160;
+  --accent-background-30: 18, 128, 102;
+  --accent-background-40: 14, 96, 78;
+  --accent-background-50: 9, 52, 44;
+
+  --success: 80, 232, 151;
+  --warning: 255, 214, 77;
+  --critical: 240, 105, 130;
+  --special: 37, 185, 245;
+  --window-icon-stroke: 150, 245, 210;
+
+  --default-color: 255, 255, 255;
+}
+
 /* Noir & blanc : fond noir pur, texte blanc, nuances de gris */
 :root[data-theme='noir-blanc'] {
   --background-10: 255, 255, 255;

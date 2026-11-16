@@ -12,6 +12,7 @@ import com.sun.jna.platform.win32.WinUser
 import dev.slimevr.FeatureFlags
 import dev.slimevr.Keybinding
 import dev.slimevr.SLIMEVR_IDENTIFIER
+import dev.slimevr.SLIMEVR_ORIGINAL_IDENTIFIER
 import dev.slimevr.VRServer
 import dev.slimevr.bridge.Bridge
 import dev.slimevr.config.ConfigManager
@@ -47,6 +48,7 @@ import java.nio.file.Paths
 import javax.swing.JOptionPane
 import kotlin.concurrent.thread
 import kotlin.io.path.Path
+import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.pathString
 import kotlin.system.exitProcess
@@ -349,6 +351,18 @@ fun resolveConfig(): String {
 	if (!configFile.exists() && Path(CONFIG_FILENAME).exists()) {
 		LogManager.info("Moved local config file to appdata folder")
 		Files.move(Path(CONFIG_FILENAME), configFile)
+	}
+	// VitalVR: first start, the settings of SlimeVR / BOBvr (trackers,
+	// proportions, Stay Aligned...) are copied, the original stays untouched
+	val originalConfig = OperatingSystem.resolveConfigDirectory(SLIMEVR_ORIGINAL_IDENTIFIER)?.resolve(CONFIG_FILENAME)
+	if (!configFile.exists() && originalConfig?.exists() == true) {
+		try {
+			configFile.parent?.createDirectories()
+			Files.copy(originalConfig, configFile)
+			LogManager.info("[VitalVR] Settings copied from $originalConfig")
+		} catch (e: Exception) {
+			LogManager.warning("[VitalVR] Could not copy the settings from $originalConfig", e)
+		}
 	}
 	return configFile.pathString
 }

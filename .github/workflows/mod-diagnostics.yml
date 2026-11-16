@@ -4,7 +4,7 @@ name: BOBvr Diagnostics
 
 on:
   push:
-    branches: [main]
+    branches: [main, vitalvr]
   workflow_dispatch:
 
 jobs:

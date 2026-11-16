@@ -45,54 +45,40 @@ export function SettingsSidebar() {
   return (
     <div className="flex flex-col px-5 py-5 gap-3 overflow-y-auto bg-background-70 rounded-lg h-full">
       <Typography variant="main-title" id="settings-sidebar-title" />
+      {/* VitalVR : menu des reglages range comme la v22 */}
       <div className="flex flex-col gap-3">
         <Typography variant="section-title" id="settings-sidebar-general" />
         <div className="flex flex-col gap-2">
-          <SettingsLink to="/settings/dance" id="settings-sidebar-dance" />
           <SettingsLink
-            to="/settings/trackers"
-            scrollTo="steamvr"
-            id="settings-sidebar-steamvr"
+            to="/settings/profiles"
+            id="settings-sidebar-profiles"
           />
           <SettingsLink
-            to="/settings/trackers"
-            scrollTo="stayaligned"
+            to="/settings/tracking"
+            id="settings-sidebar-tracking"
+          />
+          <SettingsLink to="/settings/resets" id="settings-sidebar-resets" />
+          <SettingsLink
+            to="/settings/stay-aligned"
             id="settings-sidebar-stay_aligned"
           />
-          <SettingsLink
-            to="/settings/trackers"
-            scrollTo="mechanics"
-            id="settings-sidebar-tracker_mechanics"
-          />
-          <SettingsLink
-            to="/settings/trackers"
-            scrollTo="fksettings"
-            id="settings-sidebar-fk_settings"
-          />
-          <SettingsLink
-            to="/settings/trackers"
-            scrollTo="gestureControl"
-            id="settings-sidebar-gesture_control"
-          />
+          <SettingsLink to="/settings/trackers" id="settings-sidebar-steamvr" />
         </div>
       </div>
       <div className="flex flex-col gap-3">
         <Typography variant="section-title" id="settings-sidebar-interface" />
         <div className="flex flex-col gap-2">
           <SettingsLink
-            to="/settings/interface"
-            scrollTo="notifications"
-            id="settings-sidebar-notifications"
+            to="/settings/appearance"
+            id="settings-sidebar-appearance"
           />
           <SettingsLink
-            to="/settings/interface"
-            scrollTo="behavior"
+            to="/settings/behavior"
             id="settings-sidebar-behavior"
           />
           <SettingsLink
-            to="/settings/interface"
-            scrollTo="appearance"
-            id="settings-sidebar-appearance"
+            to="/settings/notifications"
+            id="settings-sidebar-notifications"
           />
           <SettingsLink
             to="/settings/interface/home"
@@ -105,46 +91,46 @@ export function SettingsSidebar() {
             id="settings-sidebar-checklist"
           />
         </div>
-        <div className="flex flex-col gap-3">
-          <Typography variant="section-title">OSC</Typography>
-          <div className="flex flex-col gap-2">
-            <SettingsLink
-              to="/settings/osc/router"
-              scrollTo="router"
-              id="settings-sidebar-osc_router"
-            />
-            <SettingsLink
-              to="/settings/osc/vrchat"
-              scrollTo="vrchat"
-              id="settings-sidebar-osc_trackers"
-            />
-            <SettingsLink
-              to="/settings/osc/vmc"
-              scrollTo="vmc"
-              id="settings-sidebar-osc_vmc"
-            />
-          </div>
+      </div>
+      <div className="flex flex-col gap-3">
+        <Typography variant="section-title" id="settings-sidebar-outputs" />
+        <div className="flex flex-col gap-2">
+          <SettingsLink
+            to="/settings/osc/vrchat"
+            scrollTo="vrchat"
+            id="settings-sidebar-osc_trackers"
+          />
+          <SettingsLink
+            to="/settings/osc/vmc"
+            scrollTo="vmc"
+            id="settings-sidebar-osc_vmc"
+          />
+          <SettingsLink
+            to="/settings/osc/router"
+            scrollTo="router"
+            id="settings-sidebar-osc_router"
+          />
         </div>
-        <div className="flex flex-col gap-3">
-          <Typography variant="section-title" id="settings-sidebar-utils" />
-          <div className="flex flex-col gap-2">
-            <SettingsLink to="/settings/serial" id="settings-sidebar-serial" />
+      </div>
+      <div className="flex flex-col gap-3">
+        <Typography variant="section-title" id="settings-sidebar-utils" />
+        <div className="flex flex-col gap-2">
+          <SettingsLink to="/settings/serial" id="settings-sidebar-serial" />
+          <SettingsLink
+            to="/settings/firmware-tool"
+            id="settings-sidebar-firmware-tool"
+          />
+          <SettingsLink to="/onboarding/home" id="navbar-onboarding" />
+          {vrcConfigState?.isSupported && (
             <SettingsLink
-              to="/settings/firmware-tool"
-              id="settings-sidebar-firmware-tool"
+              to="/vrc-warnings"
+              id="settings-sidebar-vrc_warnings"
             />
-            <SettingsLink to="/onboarding/home" id="navbar-onboarding" />
-            {vrcConfigState?.isSupported && (
-              <SettingsLink
-                to="/vrc-warnings"
-                id="settings-sidebar-vrc_warnings"
-              />
-            )}
-            <SettingsLink
-              to="/settings/advanced"
-              id="settings-sidebar-advanced"
-            />
-          </div>
+          )}
+          <SettingsLink
+            to="/settings/advanced"
+            id="settings-sidebar-advanced"
+          />
         </div>
       </div>
     </div>

@@ -21,7 +21,7 @@ export function DoneStep({ goTo }: VerticalStepComponentProps) {
         <Localized id="onboarding-stay_aligned-done">
           <Button
             variant="primary"
-            to="/settings/trackers"
+            to="/settings/stay-aligned"
             state={{ scrollTo: 'stayaligned' }}
           />
         </Localized>

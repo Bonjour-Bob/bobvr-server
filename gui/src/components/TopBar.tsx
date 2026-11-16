@@ -28,6 +28,7 @@ import { useElectron } from '@/hooks/electron';
 import { openUrl } from '@/hooks/crossplatform';
 import { MOD_VERSION } from '@/mod-version';
 import { ModChangelogModal } from './ModChangelogModal';
+import { ProfileSelector } from './ProfileSelector';
 
 export function VersionTag() {
   return (
@@ -41,8 +42,7 @@ export function VersionTag() {
         (__VERSION_TAG__ || __COMMIT_HASH__) + (__GIT_CLEAN__ ? '' : '-dirty')
       }
     >
-      {/* SlimeVR Mod : nom du mod a la place du numero de version */}
-      BOBvr-Beta v{MOD_VERSION} by Bonjour-
+      {/* VitalVR : nom et version de l'appli */}v{MOD_VERSION}
     </div>
   );
 }
@@ -160,7 +160,7 @@ export function TopBar({
                   className={classNames('flex justify-around flex-col')}
                   data-electron-drag-region
                 >
-                  <Typography>SlimeVR</Typography>
+                  <Typography bold>VitalVR</Typography>
                 </div>
               )}
               {(!doesMatchSettings || !isMobile) && <VersionTag />}
@@ -209,10 +209,10 @@ export function TopBar({
             )}
           </div>
           <div className="flex justify-end items-center px-2 gap-2 z-50">
+            {!isMobile && <ProfileSelector />}
             <NavLink
-              to="/settings/trackers"
+              to="/settings/profiles"
               className="flex justify-around flex-col select-all fill-background-50"
-              state={{ scrollTo: 'steamvr' }}
             >
               <GearIcon />
             </NavLink>

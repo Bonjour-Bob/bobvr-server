@@ -1,3 +1,4 @@
+import classNames from 'classnames';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import {
@@ -18,7 +19,6 @@ import { Typography } from '@/components/commons/Typography';
 import { CheckBox } from '@/components/commons/Checkbox';
 import { Radio } from '@/components/commons/Radio';
 import { NumberSelector } from '@/components/commons/NumberSelector';
-import { Button } from '@/components/commons/Button';
 import { WrenchIcon } from '@/components/commons/icon/WrenchIcons';
 import {
   SettingsPageLayout,
@@ -147,6 +147,37 @@ const LAP_DANCE_PRESET: DanceForm = {
 };
 
 export type ModProfile = 'dance' | 'one-to-one' | 'origin' | 'lapdance';
+
+// VitalVR : les profils montres dans la barre du haut et la page Profils
+export const PROFILE_INFO: {
+  id: ModProfile;
+  label: string;
+  description: string;
+}[] = [
+  {
+    id: 'one-to-one',
+    label: 'Normal',
+    description: 'Tous les jours : debout, assis, couché, marcher',
+  },
+  {
+    id: 'dance',
+    label: 'Danse',
+    description: 'Danse debout : réactif, pieds plantés, hanches libres',
+  },
+  {
+    id: 'lapdance',
+    label: 'Lap dance',
+    description: 'Sol, assis puis debout, genoux au sol, cambrures',
+  },
+  {
+    id: 'origin',
+    label: 'Origine',
+    description: 'Réglages de SlimeVR de base, sans corrections VitalVR',
+  },
+];
+
+export const profileLabel = (profile: ModProfile | null) =>
+  PROFILE_INFO.find((p) => p.id === profile)?.label ?? 'Mes réglages';
 
 const PROFILE_PRESETS: Record<ModProfile, DanceForm> = {
   dance: DANCE_PRESET,
@@ -431,7 +462,18 @@ export function useModProfiles() {
     sendRPCPacket(RpcMessage.SettingsRequest, new SettingsRequestT());
   };
 
-  return { active, toggle };
+  // Choosing the active one again changes nothing; null turns the active
+  // profile off, which brings back the settings saved before it
+  const select = (profile: ModProfile | null) => {
+    if (profile === active) return;
+    if (profile === null) {
+      if (active) toggle(active);
+      return;
+    }
+    toggle(profile);
+  };
+
+  return { active, toggle, select };
 }
 
 function Explain({ children }: { children: ReactNode }) {
@@ -453,22 +495,18 @@ function Advice({ children }: { children: ReactNode }) {
 export function DanceSettings() {
   const { sendRPCPacket, useRPCPacket } = useWebsocketAPI();
   const [settings, setSettings] = useState<SettingsResponseT | null>(null);
-  const [hasBackup, setHasBackup] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const { active, select } = useModProfiles();
   const settingsRef = useRef<SettingsResponseT | null>(null);
 
-  const { reset, control, watch, handleSubmit, getValues } = useForm<DanceForm>(
-    {
-      defaultValues: DANCE_PRESET,
-      mode: 'onChange',
-    }
-  );
+  const { reset, control, watch, handleSubmit } = useForm<DanceForm>({
+    defaultValues: DANCE_PRESET,
+    mode: 'onChange',
+  });
 
   const skatingCorrection = watch('toggles.skatingCorrection');
   const driftEnabled = watch('drift.enabled');
 
   useEffect(() => {
-    setHasBackup(readBackup() !== null);
     sendRPCPacket(RpcMessage.SettingsRequest, new SettingsRequestT());
   }, []);
 
@@ -495,63 +533,43 @@ export function DanceSettings() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const applyValues = (values: DanceForm) => {
-    reset(values);
-    handleSubmit(onSubmit)();
-    sendRPCPacket(RpcMessage.SettingsRequest, new SettingsRequestT());
-  };
-
-  const applyDancePreset = () => {
-    saveBackupIfMissing(getValues());
-    saveActiveProfile('dance');
-    savePresetVersion();
-    setHasBackup(readBackup() !== null);
-    applyValues(DANCE_PRESET);
-    setMessage('Profil danse appliqué.');
-  };
-
-  const restoreBackup = () => {
-    const backup = readBackup();
-    if (!backup) {
-      setMessage('Impossible de retrouver tes réglages d’avant.');
-      return;
-    }
-    applyValues(backup);
-    clearBackup();
-    setHasBackup(false);
-    setMessage('Tes réglages d’avant sont revenus.');
-  };
-
   return (
     <SettingsPageLayout className="flex flex-col gap-2 w-full">
-      <SettingsPagePaneLayout icon={<WrenchIcon />} id="dance-preset">
-        <Typography variant="main-title">Danse</Typography>
+      <SettingsPagePaneLayout icon={<WrenchIcon />} id="profiles">
+        <Typography variant="main-title">Profils</Typography>
         <Explain>
-          Tous les réglages qui comptent pour danser, au même endroit. Chaque
-          changement s’applique tout de suite. Le profil danse est un point de
-          départ : ajuste ensuite selon ton style (footwork, shuffle, pop…).
+          Un profil règle tout d’un clic pour ce que tu fais. Tes propres
+          réglages sont gardés de côté et reviennent avec « Mes réglages ». Tu
+          peux aussi changer de profil depuis la barre du haut. Les réglages en
+          dessous suivent le profil choisi et restent modifiables.
         </Explain>
-        <div className="flex flex-wrap gap-3 pt-2">
-          <Button
-            variant="primary"
-            onClick={applyDancePreset}
-            disabled={!settings}
-          >
-            Appliquer le profil danse
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={restoreBackup}
-            disabled={!hasBackup}
-          >
-            Revenir à mes réglages d’avant
-          </Button>
+        <div className="grid sm:grid-cols-2 gap-2 pt-2">
+          {[
+            ...PROFILE_INFO,
+            {
+              id: null,
+              label: 'Mes réglages',
+              description: 'Tes propres réglages, sans profil',
+            },
+          ].map((profile) => (
+            <button
+              type="button"
+              key={profile.id ?? 'mine'}
+              aria-pressed={active === profile.id}
+              disabled={!settings}
+              onClick={() => select(profile.id)}
+              className={classNames(
+                'flex flex-col items-start text-left rounded-lg px-4 py-3 border-2',
+                active === profile.id
+                  ? 'border-accent-background-20 bg-accent-background-50'
+                  : 'border-transparent bg-background-60 hover:bg-background-50'
+              )}
+            >
+              <Typography bold>{profile.label}</Typography>
+              <Typography color="secondary">{profile.description}</Typography>
+            </button>
+          ))}
         </div>
-        {message && (
-          <div className="pt-3">
-            <Typography>{message}</Typography>
-          </div>
-        )}
       </SettingsPagePaneLayout>
 
       <SettingsPagePaneLayout icon={<WrenchIcon />} id="dance-reactivity">

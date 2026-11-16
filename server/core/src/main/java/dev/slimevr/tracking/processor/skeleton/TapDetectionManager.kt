@@ -37,7 +37,7 @@ class TapDetectionManager(
 	fun registerResetsDetectors() {
 		val yawTracker = yawResetTracker
 		yawResetDetector = if (yawTracker != null && config.yawResetEnabled) {
-			TapDetection(skeleton, yawTracker, config.numberTrackersOverThreshold, config.yawResetTaps) {
+			TapDetection(skeleton, yawTracker, config.numberTrackersOverThreshold, config.yawResetTaps, needsStillHead = true) {
 				server.scheduleResetTrackersYaw(RESET_SOURCE_NAME, (config.yawResetDelay * 1000).toLong())
 			}
 		} else {
@@ -46,7 +46,7 @@ class TapDetectionManager(
 
 		val fullTracker = fullResetTracker
 		fullResetDetector = if (fullTracker != null && config.fullResetEnabled) {
-			TapDetection(skeleton, fullTracker, config.numberTrackersOverThreshold, config.fullResetTaps) {
+			TapDetection(skeleton, fullTracker, config.numberTrackersOverThreshold, config.fullResetTaps, needsStillHead = true) {
 				server.scheduleResetTrackersFull(RESET_SOURCE_NAME, (config.fullResetDelay * 1000).toLong())
 			}
 		} else {
@@ -55,7 +55,7 @@ class TapDetectionManager(
 
 		val mountingTracker = mountingResetTracker
 		mountingResetDetector = if (mountingTracker != null && config.mountingResetEnabled) {
-			TapDetection(skeleton, mountingTracker, config.numberTrackersOverThreshold, config.mountingResetTaps) {
+			TapDetection(skeleton, mountingTracker, config.numberTrackersOverThreshold, config.mountingResetTaps, needsStillHead = true) {
 				server.scheduleResetTrackersMounting(RESET_SOURCE_NAME, (config.mountingResetDelay * 1000).toLong())
 			}
 		} else {

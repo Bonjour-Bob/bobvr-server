@@ -1,7 +1,7 @@
-# SlimeVR Mod : enregistre SlimeVR Mod comme application SteamVR, pour qu'il
+# VitalVR : enregistre VitalVR comme application SteamVR, pour qu'il
 # puisse se lancer tout seul au demarrage de SteamVR.
 # Ensuite, dans SteamVR : Reglages > Demarrage/Arret > "Choisir les
-# applications au demarrage" (startup overlay apps) > activer SlimeVR Mod.
+# applications au demarrage" (startup overlay apps) > activer VitalVR.
 param(
 	[string]$Exe,
 	[string]$Arguments = "",
@@ -17,7 +17,7 @@ $steam = (Get-ItemProperty -Path "HKCU:\Software\Valve\Steam" -ErrorAction Silen
 if (-not $steam) { Write-Host "Steam introuvable."; exit 1 }
 $steam = $steam -replace "/", "\"
 $appConfig = Join-Path $steam "config\appconfig.json"
-$manifest = Join-Path $ManifestDir "bobvr-09.vrmanifest"
+$manifest = Join-Path $ManifestDir "vitalvr.vrmanifest"
 
 # Liste des manifestes deja enregistres dans SteamVR
 $paths = @()
@@ -32,12 +32,12 @@ $paths = @($paths | Where-Object { $_ -and ($_ -ne $manifest) })
 if (-not $Remove) {
 	New-Item -ItemType Directory -Force -Path $ManifestDir | Out-Null
 	$app = [ordered]@{
-		app_key = "dev.slimevr.bobvr09"
+		app_key = "dev.vitalvr.app"
 		launch_type = "binary"
 		binary_path_windows = $Exe
 		arguments = $Arguments
 		is_dashboard_overlay = $true
-		strings = @{ en_us = @{ name = "BOBvr 0.9"; description = "BOBvr 0.9 (SlimeVR Mod)" } }
+		strings = @{ en_us = @{ name = "VitalVR"; description = "VitalVR (SlimeVR v21 pour la danse)" } }
 	}
 	$doc = [ordered]@{ source = "builtin"; applications = @($app) }
 	[System.IO.File]::WriteAllText($manifest, ($doc | ConvertTo-Json -Depth 6), $utf8)
@@ -48,5 +48,5 @@ if (-not $Remove) {
 
 $json | Add-Member -NotePropertyName manifest_paths -NotePropertyValue $paths -Force
 [System.IO.File]::WriteAllText($appConfig, ($json | ConvertTo-Json -Depth 6), $utf8)
-if ($Remove) { Write-Host "SlimeVR Mod retire de SteamVR." } else { Write-Host "SlimeVR Mod enregistre dans SteamVR." }
+if ($Remove) { Write-Host "VitalVR retire de SteamVR." } else { Write-Host "VitalVR enregistre dans SteamVR." }
 exit 0

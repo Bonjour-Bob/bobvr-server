@@ -26,7 +26,9 @@ import {
   getLogsFolder,
   getServerDataFolder,
   getWindowStateFile,
+  ORIGINAL_CONFIG_IDENTIFIER,
 } from './paths';
+import { existsSync } from 'node:fs';
 import { initStores } from './store';
 import { closeLogger, logger } from './logger';
 
@@ -34,7 +36,7 @@ import { spawn } from 'node:child_process';
 import { discordPresence } from './presence';
 import { options } from './cli';
 import { ServerStatusEvent } from 'electron/preload/interface';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { MenuItem } from 'electron/main';
 
 type Stores = Awaited<ReturnType<typeof initStores>>;
@@ -65,26 +67,7 @@ protocol.registerSchemesAsPrivileged([
 
 let mainWindow: BrowserWindow | null = null;
 
-// SlimeVR Mod : site de BOBvr (mises a jour)
-const MOD_SITE = 'https://bonjour-bobvr.netlify.app';
-
 handleIpc(IPC_CHANNELS.GH_FETCH, async (e, options) => {
-  if (options.type === 'mod-site') {
-    // version.json si le site en a un, sinon la page d'accueil
-    const text = (url: string) =>
-      fetch(`${url}?t=${Date.now()}`)
-        .then((res) => (res.ok ? res.text() : null))
-        .catch(() => null);
-    let json = await text(`${MOD_SITE}/version.json`);
-    // Un site qui renvoie sa page pour toute adresse n'a pas de vrai version.json
-    try {
-      if (json) JSON.parse(json);
-    } catch {
-      json = null;
-    }
-    const html = json ? null : await text(MOD_SITE);
-    return { json, html };
-  }
   if (options.type === 'fw-releases') {
     return fetch(
       'https://api.github.com/repos/SlimeVR/SlimeVR-Tracker-ESP/releases'
@@ -285,15 +268,13 @@ function createWindow() {
     movable: true,
     frame: false,
     roundedCorners: true,
-    // SlimeVR Mod : icone de Bob dans la barre des taches
+    // VitalVR : logo dans la barre des taches
     icon: trayIcon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
       contextIsolation: true,
       devTools: true,
-      // SlimeVR Mod : la musique de demarrage joue sans clic
-      autoplayPolicy: 'no-user-gesture-required',
     },
   });
 
@@ -334,7 +315,7 @@ function createWindow() {
     getPlatform() === 'macos' ? appleTrayIcon : trayIcon
   );
   const tray = new Tray(icon);
-  tray.setToolTip('SlimeVR');
+  tray.setToolTip('VitalVR');
   tray.on('click', () => {
     mainWindow?.show();
   });
@@ -399,7 +380,7 @@ const checkEnvironmentVariables = () => {
   const set = disallowedVars.filter((env) => !!process.env[env]);
   if (set.length > 0) {
     dialog.showErrorBox(
-      'SlimeVR',
+      'VitalVR',
       `You have environment variables ${set.join(', ')} set, which may cause the SlimeVR Server to fail to launch properly.`
     );
     app.quit();
@@ -426,7 +407,7 @@ const spawnServer = async () => {
   const javaBin = await findSystemJRE(sharedDir);
   if (!javaBin) {
     dialog.showErrorBox(
-      'SlimeVR',
+      'VitalVR',
       'Unable to find a compatible Java version, please download Java 17 or higher'
     );
     app.quit();
@@ -495,6 +476,25 @@ const spawnServer = async () => {
 const createFolders = async () => {
   await mkdir(getServerDataFolder(), { recursive: true });
   await mkdir(getGuiDataFolder(), { recursive: true });
+  await importOriginalGuiSettings();
+};
+
+// VitalVR : au premier lancement, reprend les reglages de l'interface de
+// SlimeVR / BOBvr (langue, accueil...). L'original n'est pas touche.
+const importOriginalGuiSettings = async () => {
+  const target = join(getGuiDataFolder(), 'gui-settings.dat');
+  const source = join(
+    dirname(getGuiDataFolder()),
+    ORIGINAL_CONFIG_IDENTIFIER,
+    'gui-settings.dat'
+  );
+  if (existsSync(target) || !existsSync(source)) return;
+  try {
+    await copyFile(source, target);
+    logger.info('Interface settings copied from SlimeVR / BOBvr');
+  } catch (err) {
+    logger.warn(err, 'Could not copy the SlimeVR / BOBvr interface settings');
+  }
 };
 
 let isQuitting = false;
@@ -511,7 +511,7 @@ app.whenReady().then(async () => {
   } catch (err) {
     logger.error(err, 'Failed to initialize stores');
     dialog.showErrorBox(
-      'SlimeVR',
+      'VitalVR',
       'Failed to initialize application storage. Please make sure the application has write permissions to its data folder.'
     );
     app.quit();
@@ -524,7 +524,7 @@ app.whenReady().then(async () => {
 
   createWindow();
 
-  logger.info('SlimeVR started!');
+  logger.info('VitalVR started!');
 
   app.on('window-all-closed', () => {
     app.quit();

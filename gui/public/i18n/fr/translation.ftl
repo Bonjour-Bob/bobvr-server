@@ -505,6 +505,10 @@ mounting_selection_menu-close = Fermer
 
 settings-sidebar-title = Réglages
 settings-sidebar-general = Général
+settings-sidebar-profiles = Profils
+settings-sidebar-tracking = Suivi
+settings-sidebar-resets = Réinitialisations et gestes
+settings-sidebar-outputs = Sorties
 settings-sidebar-dance = Danse
 settings-sidebar-steamvr = SteamVR
 settings-sidebar-tracker_mechanics = Paramètres des capteurs
@@ -621,7 +625,7 @@ settings-stay_aligned-relaxed_poses-description = Garder Aligné utilise vos pos
 settings-stay_aligned-relaxed_poses-standing = Ajuster les capteurs en position debout
 settings-stay_aligned-relaxed_poses-sitting = Ajuster les capteurs en position assise sur une chaise
 settings-stay_aligned-relaxed_poses-flat = Ajuster les capteurs en position assise sur le sol ou allongée sur le dos
-settings-stay_aligned-relaxed_poses-lying = Ajuster les capteurs allongé dans le lit (BOBvr)
+settings-stay_aligned-relaxed_poses-lying = Ajuster les capteurs allongé dans le lit
 settings-stay_aligned-relaxed_poses-lying-title = Posture allongé détendu
 settings-stay_aligned-relaxed_poses-lying-step-0 = 1. Appuyez sur « Enregistrer la posture », puis allongez-vous sur le dos dans votre lit en moins de 5 secondes. Détendez-vous !
 settings-stay_aligned-relaxed_poses-lying-step-1 = 2. La posture est enregistrée au bout de 5 secondes. La réinitialiser réinitialise aussi la posture au sol.
@@ -1032,7 +1036,7 @@ onboarding-reset_tutorial-2 =
 
 ## Setup start
 
-onboarding-home = Bienvenue sur SlimeVR
+onboarding-home = Bienvenue sur VitalVR
 onboarding-home-start = Commencer
 
 ## Setup done
@@ -1687,13 +1691,13 @@ error_collection_modal-cancel = Je ne veux pas
 tracking_checklist = Checklist de suivi
 tracking_checklist-settings = Paramètres de lachecklist de suivi
 tracking_checklist-settings-close = Fermer
-tracking_checklist-status-incomplete = Vous n’êtes pas prêt à utiliser SlimeVR !
+tracking_checklist-status-incomplete = Vous n’êtes pas prêt à utiliser VitalVR !
 tracking_checklist-status-partial =
     { $count ->
         [one] Vous avez 1 avertissement !
        *[other] Vous avez { $count } avertissements !
     }
-tracking_checklist-status-complete = Vous êtes prêt à utiliser SlimeVR !
+tracking_checklist-status-complete = Vous êtes prêt à utiliser VitalVR !
 tracking_checklist-MOUNTING_CALIBRATION = Effectuer une calibration de l'alignement
 tracking_checklist-FEET_MOUNTING_CALIBRATION = Effectuer une calibration de l'alignement des pieds
 tracking_checklist-FULL_RESET = Faire une réinitialisation complète

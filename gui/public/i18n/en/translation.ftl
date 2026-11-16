@@ -481,6 +481,10 @@ mounting_selection_menu-close = Close
 ## Sidebar settings
 settings-sidebar-title = Settings
 settings-sidebar-general = General
+settings-sidebar-profiles = Profiles
+settings-sidebar-tracking = Tracking
+settings-sidebar-resets = Resets and gestures
+settings-sidebar-outputs = Outputs
 settings-sidebar-dance = Dance
 settings-sidebar-steamvr = SteamVR
 settings-sidebar-tracker_mechanics = Tracker mechanics
@@ -599,7 +603,7 @@ settings-stay_aligned-relaxed_poses-description = Stay Aligned uses your relaxed
 settings-stay_aligned-relaxed_poses-standing = Adjust trackers while standing
 settings-stay_aligned-relaxed_poses-sitting = Adjust trackers while sitting in a chair
 settings-stay_aligned-relaxed_poses-flat = Adjust trackers while sitting on the floor, or lying on your back
-settings-stay_aligned-relaxed_poses-lying = Adjust trackers while lying in bed (BOBvr)
+settings-stay_aligned-relaxed_poses-lying = Adjust trackers while lying in bed
 settings-stay_aligned-relaxed_poses-lying-title = Relaxed Lying Pose
 settings-stay_aligned-relaxed_poses-lying-step-0 = 1. Press "Save pose", then lie on your back in bed within 5 seconds. Relax!
 settings-stay_aligned-relaxed_poses-lying-step-1 = 2. The pose is saved after 5 seconds. Resetting it also resets the floor pose.
@@ -1047,7 +1051,7 @@ install-info_udev-rules_warning = Access rules via udev are required for serial 
 install-info_udev-rules_modal_button = Close
 install-info_udev-rules_modal-dont-show-again_checkbox = Don't show again
 ## Setup start
-onboarding-home = Welcome to SlimeVR
+onboarding-home = Welcome to VitalVR
 onboarding-home-start = Let's get set up!
 
 
@@ -1695,12 +1699,12 @@ error_collection_modal-cancel = I don't want to
 tracking_checklist = Tracking Checklist
 tracking_checklist-settings = Tracking Checklist Settings
 tracking_checklist-settings-close = Close
-tracking_checklist-status-incomplete = You are not prepared to use SlimeVR!
+tracking_checklist-status-incomplete = You are not prepared to use VitalVR!
 tracking_checklist-status-partial = {$count ->
     [one] You have 1 warning!
     *[many] You have {$count} warnings!
 }
-tracking_checklist-status-complete = You are prepared to use SlimeVR!
+tracking_checklist-status-complete = You are prepared to use VitalVR!
 tracking_checklist-MOUNTING_CALIBRATION = Perform a mounting calibration
 tracking_checklist-FEET_MOUNTING_CALIBRATION = Perform a feet mounting calibration
 tracking_checklist-FULL_RESET = Perform a full reset

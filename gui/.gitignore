@@ -39,3 +39,6 @@ electron.vite.config.*.mjs
 
 # electron
 out/
+
+# VitalVR : fichiers prepares par Creer-Installeur-VitalVR.bat
+/build-vitalvr

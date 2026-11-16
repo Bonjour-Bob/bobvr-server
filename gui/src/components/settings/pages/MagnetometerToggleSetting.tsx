@@ -132,7 +132,7 @@ export function MagnetometerToggleSetting({
           b: <b />,
           magSetting: (
             <Link
-              to="/settings/trackers"
+              to="/settings/tracking"
               state={{ scrollTo: 'mechanics-magnetometer' }}
               className="underline"
             />

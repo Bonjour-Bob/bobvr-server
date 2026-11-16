@@ -32,14 +32,18 @@ export function ModChangelogModal({
     }
   }
   if (history.length > 0) {
-    sections.push({ title: 'Historique', entries: history, highlight: false });
+    sections.push({
+      title: 'Historique (BOBvr, inclus dans VitalVR)',
+      entries: history,
+      highlight: false,
+    });
   }
 
   return (
     <BaseModal isOpen={isOpen} onRequestClose={onClose}>
       <div className="flex flex-col gap-4 max-w-lg max-h-[70vh]">
         <Typography variant="main-title" bold>
-          Nouveautés de BOBvr v{MOD_VERSION}
+          Nouveautés de VitalVR v{MOD_VERSION}
         </Typography>
         <div className="flex flex-col gap-5 overflow-y-auto pr-2">
           {sections.map(({ title, entries, highlight }) => (

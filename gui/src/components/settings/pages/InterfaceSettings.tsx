@@ -43,7 +43,16 @@ interface InterfaceSettingsForm {
   };
 }
 
-export function InterfaceSettings() {
+// VitalVR : comme la v22, chaque partie des reglages a sa propre page
+export type InterfaceSection = 'notifications' | 'behavior' | 'appearance';
+
+export function InterfaceSettings({
+  sections,
+}: {
+  sections?: InterfaceSection[];
+} = {}) {
+  const show = (section: InterfaceSection) =>
+    !sections || sections.includes(section);
   const electron = useElectron();
   const { currentLocales } = useLocaleConfig();
   const { l10n } = useLocalization();
@@ -177,113 +186,147 @@ export function InterfaceSettings() {
           } as React.CSSProperties
         }
       >
-        <SettingsPagePaneLayout icon={<BellIcon />} id="notifications">
+        {show('notifications') && (
           <>
-            <Typography variant="main-title">
-              {l10n.getString('settings-interface-notifications')}
-            </Typography>
+            <SettingsPagePaneLayout icon={<BellIcon />} id="notifications">
+              <>
+                <Typography variant="main-title">
+                  {l10n.getString('settings-interface-notifications')}
+                </Typography>
 
-            <div className="pt-2">
-              <Typography variant="section-title">
-                {l10n.getString('settings-general-interface-serial_detection')}
-              </Typography>
-            </div>
-
-            <div className="flex flex-col pt-1 pb-2">
-              <Typography>
-                {l10n.getString(
-                  'settings-general-interface-serial_detection-description'
-                )}
-              </Typography>
-            </div>
-            <div className="grid sm:grid-cols-2 pb-4">
-              <CheckBox
-                variant="toggle"
-                control={control}
-                outlined
-                name="notifications.watchNewDevices"
-                label={l10n.getString(
-                  'settings-general-interface-serial_detection-label'
-                )}
-              />
-            </div>
-
-            <Typography variant="section-title">
-              {l10n.getString('settings-general-interface-feedback_sound')}
-            </Typography>
-            <div className="flex flex-col pt-1 pb-2">
-              <Typography>
-                {l10n.getString(
-                  'settings-general-interface-feedback_sound-description'
-                )}
-              </Typography>
-            </div>
-            <div className="grid sm:grid-cols-2 pb-4">
-              <CheckBox
-                variant="toggle"
-                control={control}
-                outlined
-                name="notifications.feedbackSound"
-                label={l10n.getString(
-                  'settings-general-interface-feedback_sound-label'
-                )}
-              />
-            </div>
-            <div className="grid sm:grid-cols-2 pb-4">
-              <NumberSelector
-                control={control}
-                name="notifications.feedbackSoundVolume"
-                label={l10n.getString(
-                  'settings-general-interface-feedback_sound-volume'
-                )}
-                valueLabelFormat={(value) => percentageFormat.format(value)}
-                min={0.1}
-                max={1.0}
-                step={0.1}
-              />
-            </div>
-
-            <Typography variant="section-title">
-              {l10n.getString(
-                'settings-general-interface-connected_trackers_warning'
-              )}
-            </Typography>
-            <div className="flex flex-col pt-1 pb-2">
-              <Typography>
-                {l10n.getString(
-                  'settings-general-interface-connected_trackers_warning-description'
-                )}
-              </Typography>
-            </div>
-            <div className="grid sm:grid-cols-2 pb-4">
-              <CheckBox
-                variant="toggle"
-                control={control}
-                outlined
-                name="notifications.connectedTrackersWarning"
-                label={l10n.getString(
-                  'settings-general-interface-connected_trackers_warning-label'
-                )}
-              />
-            </div>
-          </>
-        </SettingsPagePaneLayout>
-
-        <SettingsPagePaneLayout icon={<ArrowRightLeftIcon />} id="behavior">
-          <>
-            <Typography variant="main-title">
-              {l10n.getString('settings-interface-behavior')}
-            </Typography>
-            <div className="pt-2">
-              {electron.isElectron && (
-                <>
+                <div className="pt-2">
                   <Typography variant="section-title">
-                    {l10n.getString('settings-general-interface-use_tray')}
+                    {l10n.getString(
+                      'settings-general-interface-serial_detection'
+                    )}
+                  </Typography>
+                </div>
+
+                <div className="flex flex-col pt-1 pb-2">
+                  <Typography>
+                    {l10n.getString(
+                      'settings-general-interface-serial_detection-description'
+                    )}
+                  </Typography>
+                </div>
+                <div className="grid sm:grid-cols-2 pb-4">
+                  <CheckBox
+                    variant="toggle"
+                    control={control}
+                    outlined
+                    name="notifications.watchNewDevices"
+                    label={l10n.getString(
+                      'settings-general-interface-serial_detection-label'
+                    )}
+                  />
+                </div>
+
+                <Typography variant="section-title">
+                  {l10n.getString('settings-general-interface-feedback_sound')}
+                </Typography>
+                <div className="flex flex-col pt-1 pb-2">
+                  <Typography>
+                    {l10n.getString(
+                      'settings-general-interface-feedback_sound-description'
+                    )}
+                  </Typography>
+                </div>
+                <div className="grid sm:grid-cols-2 pb-4">
+                  <CheckBox
+                    variant="toggle"
+                    control={control}
+                    outlined
+                    name="notifications.feedbackSound"
+                    label={l10n.getString(
+                      'settings-general-interface-feedback_sound-label'
+                    )}
+                  />
+                </div>
+                <div className="grid sm:grid-cols-2 pb-4">
+                  <NumberSelector
+                    control={control}
+                    name="notifications.feedbackSoundVolume"
+                    label={l10n.getString(
+                      'settings-general-interface-feedback_sound-volume'
+                    )}
+                    valueLabelFormat={(value) => percentageFormat.format(value)}
+                    min={0.1}
+                    max={1.0}
+                    step={0.1}
+                  />
+                </div>
+
+                <Typography variant="section-title">
+                  {l10n.getString(
+                    'settings-general-interface-connected_trackers_warning'
+                  )}
+                </Typography>
+                <div className="flex flex-col pt-1 pb-2">
+                  <Typography>
+                    {l10n.getString(
+                      'settings-general-interface-connected_trackers_warning-description'
+                    )}
+                  </Typography>
+                </div>
+                <div className="grid sm:grid-cols-2 pb-4">
+                  <CheckBox
+                    variant="toggle"
+                    control={control}
+                    outlined
+                    name="notifications.connectedTrackersWarning"
+                    label={l10n.getString(
+                      'settings-general-interface-connected_trackers_warning-label'
+                    )}
+                  />
+                </div>
+              </>
+            </SettingsPagePaneLayout>
+          </>
+        )}
+
+        {show('behavior') && (
+          <>
+            <SettingsPagePaneLayout icon={<ArrowRightLeftIcon />} id="behavior">
+              <>
+                <Typography variant="main-title">
+                  {l10n.getString('settings-interface-behavior')}
+                </Typography>
+                <div className="pt-2">
+                  {electron.isElectron && (
+                    <>
+                      <Typography variant="section-title">
+                        {l10n.getString('settings-general-interface-use_tray')}
+                      </Typography>
+                      <div className="flex flex-col pt-1 pb-2">
+                        <Typography>
+                          {l10n.getString(
+                            'settings-general-interface-use_tray-description'
+                          )}
+                        </Typography>
+                      </div>
+                      <div className="grid sm:grid-cols-2 pb-4">
+                        <CheckBox
+                          variant="toggle"
+                          control={control}
+                          outlined
+                          name="behavior.useTray"
+                          label={l10n.getString(
+                            'settings-general-interface-use_tray-label'
+                          )}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <Typography variant="section-title">
+                    {l10n.getString(
+                      'settings-general-interface-discord_presence'
+                    )}
                   </Typography>
                   <div className="flex flex-col pt-1 pb-2">
                     <Typography>
                       {l10n.getString(
-                        'settings-general-interface-use_tray-description'
+                        'settings-general-interface-discord_presence-description'
                       )}
                     </Typography>
                   </div>
@@ -292,286 +335,280 @@ export function InterfaceSettings() {
                       variant="toggle"
                       control={control}
                       outlined
-                      name="behavior.useTray"
+                      name="behavior.discordPresence"
                       label={l10n.getString(
-                        'settings-general-interface-use_tray-label'
+                        'settings-general-interface-discord_presence-label'
                       )}
                     />
                   </div>
-                </>
-              )}
 
-              <Typography variant="section-title">
-                {l10n.getString('settings-general-interface-discord_presence')}
-              </Typography>
-              <div className="flex flex-col pt-1 pb-2">
-                <Typography>
-                  {l10n.getString(
-                    'settings-general-interface-discord_presence-description'
-                  )}
-                </Typography>
-              </div>
-              <div className="grid sm:grid-cols-2 pb-4">
-                <CheckBox
-                  variant="toggle"
-                  control={control}
-                  outlined
-                  name="behavior.discordPresence"
-                  label={l10n.getString(
-                    'settings-general-interface-discord_presence-label'
-                  )}
-                />
-              </div>
-
-              <Typography variant="section-title">
-                {l10n.getString('settings-general-interface-dev_mode')}
-              </Typography>
-              <div className="flex flex-col pt-1 pb-2">
-                <Typography>
-                  {l10n.getString(
-                    'settings-general-interface-dev_mode-description'
-                  )}
-                </Typography>
-              </div>
-              <div className="grid grid-cols-1 gap-2 pb-4 w-full">
-                <CheckBox
-                  variant="toggle"
-                  control={control}
-                  outlined
-                  name="developer.enabled"
-                  label={l10n.getString(
-                    'settings-general-interface-dev_mode-label'
-                  )}
-                />
-                {!!config?.debug && (
-                  <div className="grid grid-cols-2 w-full rounded-md gap-2">
-                    {Object.entries(devToggles).map(([name, label], i) => (
-                      <CheckBox
-                        key={i}
-                        control={control}
-                        variant="toggle"
-                        outlined
-                        name={
-                          `developer.${name}` as FieldPath<InterfaceSettingsForm>
-                        }
-                        label={l10n.getString(`widget-developer_mode-${label}`)}
-                      />
-                    ))}
+                  <Typography variant="section-title">
+                    {l10n.getString('settings-general-interface-dev_mode')}
+                  </Typography>
+                  <div className="flex flex-col pt-1 pb-2">
+                    <Typography>
+                      {l10n.getString(
+                        'settings-general-interface-dev_mode-description'
+                      )}
+                    </Typography>
                   </div>
-                )}
-              </div>
+                  <div className="grid grid-cols-1 gap-2 pb-4 w-full">
+                    <CheckBox
+                      variant="toggle"
+                      control={control}
+                      outlined
+                      name="developer.enabled"
+                      label={l10n.getString(
+                        'settings-general-interface-dev_mode-label'
+                      )}
+                    />
+                    {!!config?.debug && (
+                      <div className="grid grid-cols-2 w-full rounded-md gap-2">
+                        {Object.entries(devToggles).map(([name, label], i) => (
+                          <CheckBox
+                            key={i}
+                            control={control}
+                            variant="toggle"
+                            outlined
+                            name={
+                              `developer.${name}` as FieldPath<InterfaceSettingsForm>
+                            }
+                            label={l10n.getString(
+                              `widget-developer_mode-${label}`
+                            )}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
-              <Typography variant="section-title">
-                {l10n.getString('settings-interface-behavior-error_tracking')}
-              </Typography>
-              <div className="flex flex-col pt-1 pb-2">
-                <Localized
-                  id={
-                    'settings-interface-behavior-error_tracking-description_v2'
-                  }
-                  elems={{
-                    b: <b />,
-                  }}
-                >
-                  <Typography whitespace="whitespace-pre-line" />
-                </Localized>
-              </div>
-              <div className="grid sm:grid-cols-2 pb-4">
-                <CheckBox
-                  variant="toggle"
-                  control={control}
-                  outlined
-                  name="behavior.errorTracking"
-                  label={l10n.getString(
-                    'settings-interface-behavior-error_tracking-label'
-                  )}
-                />
-              </div>
-
-              {electron.isElectron && (
-                <>
                   <Typography variant="section-title">
                     {l10n.getString(
-                      'settings-interface-behavior-bvh_directory'
+                      'settings-interface-behavior-error_tracking'
                     )}
                   </Typography>
                   <div className="flex flex-col pt-1 pb-2">
                     <Localized
                       id={
-                        'settings-interface-behavior-bvh_directory-description'
+                        'settings-interface-behavior-error_tracking-description_v2'
                       }
+                      elems={{
+                        b: <b />,
+                      }}
                     >
-                      <Typography />
+                      <Typography whitespace="whitespace-pre-line" />
                     </Localized>
                   </div>
-                  <div className="grid gap-3 pb-5">
-                    <SystemFileInput
-                      name="behavior.bvhDirectory"
-                      rules={{
-                        required: false,
-                      }}
+                  <div className="grid sm:grid-cols-2 pb-4">
+                    <CheckBox
+                      variant="toggle"
                       control={control}
-                      label="settings-interface-behavior-bvh_directory-label"
-                      directory
+                      outlined
+                      name="behavior.errorTracking"
+                      label={l10n.getString(
+                        'settings-interface-behavior-error_tracking-label'
+                      )}
                     />
                   </div>
-                </>
-              )}
-            </div>
-          </>
-        </SettingsPagePaneLayout>
 
-        <SettingsPagePaneLayout icon={<SquaresIcon />} id="appearance">
+                  {electron.isElectron && (
+                    <>
+                      <Typography variant="section-title">
+                        {l10n.getString(
+                          'settings-interface-behavior-bvh_directory'
+                        )}
+                      </Typography>
+                      <div className="flex flex-col pt-1 pb-2">
+                        <Localized
+                          id={
+                            'settings-interface-behavior-bvh_directory-description'
+                          }
+                        >
+                          <Typography />
+                        </Localized>
+                      </div>
+                      <div className="grid gap-3 pb-5">
+                        <SystemFileInput
+                          name="behavior.bvhDirectory"
+                          rules={{
+                            required: false,
+                          }}
+                          control={control}
+                          label="settings-interface-behavior-bvh_directory-label"
+                          directory
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
+            </SettingsPagePaneLayout>
+          </>
+        )}
+
+        {show('appearance') && (
           <>
-            <Typography variant="main-title">
-              {l10n.getString('settings-interface-appearance')}
-            </Typography>
+            <SettingsPagePaneLayout icon={<SquaresIcon />} id="appearance">
+              <>
+                <Typography variant="main-title">
+                  {l10n.getString('settings-interface-appearance')}
+                </Typography>
 
-            <div className="pb-4">
-              <Typography variant="section-title">
-                {l10n.getString('settings-general-interface-theme')}
-              </Typography>
-              <div className="flex flex-wrap gap-3 pt-2">
-                <ThemeSelector
-                  control={control}
-                  name="appearance.theme"
-                  value={'slime'}
-                  colors="!bg-slime"
-                />
-                <ThemeSelector
-                  control={control}
-                  name="appearance.theme"
-                  value={'slime-green'}
-                  colors="!bg-slime-green"
-                />
-                <ThemeSelector
-                  control={control}
-                  name="appearance.theme"
-                  value={'slime-yellow'}
-                  colors="!bg-slime-yellow"
-                />
-                <ThemeSelector
-                  control={control}
-                  name="appearance.theme"
-                  value={'slime-orange'}
-                  colors="!bg-slime-orange"
-                />
-                <ThemeSelector
-                  control={control}
-                  name="appearance.theme"
-                  value={'slime-red'}
-                  colors="!bg-slime-red"
-                />
-                <ThemeSelector
-                  control={control}
-                  name="appearance.theme"
-                  value={'dark'}
-                  colors="!bg-dark"
-                />
-                <ThemeSelector
-                  control={control}
-                  name="appearance.theme"
-                  value={'light'}
-                  colors="!bg-light"
-                />
-                <ThemeSelector
-                  control={control}
-                  name="appearance.theme"
-                  value={'trans'}
-                  colors="!bg-trans-flag"
-                />
-                <ThemeSelector
-                  control={control}
-                  name="appearance.theme"
-                  value={'asexual'}
-                  colors="!bg-asexual-flag"
-                />
-                <ThemeSelector
-                  control={control}
-                  name="appearance.theme"
-                  value={'snep'}
-                  colors="!bg-snep"
-                />
-                <ThemeSelector
-                  control={control}
-                  name="appearance.theme"
-                  value={'noir-blanc'}
-                  colors="!bg-noir-blanc"
-                />
-              </div>
-            </div>
+                <div className="pb-4">
+                  <Typography variant="section-title">
+                    {l10n.getString('settings-general-interface-theme')}
+                  </Typography>
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    <ThemeSelector
+                      control={control}
+                      name="appearance.theme"
+                      value={'slime'}
+                      colors="!bg-slime"
+                    />
+                    <ThemeSelector
+                      control={control}
+                      name="appearance.theme"
+                      value={'slime-green'}
+                      colors="!bg-slime-green"
+                    />
+                    <ThemeSelector
+                      control={control}
+                      name="appearance.theme"
+                      value={'slime-yellow'}
+                      colors="!bg-slime-yellow"
+                    />
+                    <ThemeSelector
+                      control={control}
+                      name="appearance.theme"
+                      value={'slime-orange'}
+                      colors="!bg-slime-orange"
+                    />
+                    <ThemeSelector
+                      control={control}
+                      name="appearance.theme"
+                      value={'slime-red'}
+                      colors="!bg-slime-red"
+                    />
+                    <ThemeSelector
+                      control={control}
+                      name="appearance.theme"
+                      value={'dark'}
+                      colors="!bg-dark"
+                    />
+                    <ThemeSelector
+                      control={control}
+                      name="appearance.theme"
+                      value={'light'}
+                      colors="!bg-light"
+                    />
+                    <ThemeSelector
+                      control={control}
+                      name="appearance.theme"
+                      value={'trans'}
+                      colors="!bg-trans-flag"
+                    />
+                    <ThemeSelector
+                      control={control}
+                      name="appearance.theme"
+                      value={'asexual'}
+                      colors="!bg-asexual-flag"
+                    />
+                    <ThemeSelector
+                      control={control}
+                      name="appearance.theme"
+                      value={'snep'}
+                      colors="!bg-snep"
+                    />
+                    <ThemeSelector
+                      control={control}
+                      name="appearance.theme"
+                      value={'noir-blanc'}
+                      colors="!bg-noir-blanc"
+                    />
+                    <ThemeSelector
+                      control={control}
+                      name="appearance.theme"
+                      value={'vitalvr'}
+                      colors="!bg-vitalvr"
+                    />
+                  </div>
+                </div>
 
-            <Typography variant="section-title">
-              {l10n.getString('settings-interface-appearance-font')}
-            </Typography>
-            <div className="flex flex-col pt-1 pb-2">
-              <Typography>
-                {l10n.getString(
-                  'settings-interface-appearance-font-description'
-                )}
-              </Typography>
-            </div>
-            <div className="grid sm:grid-cols-2 pb-4">
-              <Dropdown
-                control={control}
-                name="appearance.fonts"
-                placeholder={l10n.getString(
-                  'settings-interface-appearance-font-placeholder'
-                )}
-                /* Supports multiple items by separating them with a comma */
-                items={fontOptions.map((option) => ({
-                  label: (
-                    <span style={{ fontFamily: option.fontName }}>
-                      {option.label}
-                    </span>
-                  ),
-                  value: option.value,
-                }))}
-                alignment="left"
-              />
-            </div>
+                <Typography variant="section-title">
+                  {l10n.getString('settings-interface-appearance-font')}
+                </Typography>
+                <div className="flex flex-col pt-1 pb-2">
+                  <Typography>
+                    {l10n.getString(
+                      'settings-interface-appearance-font-description'
+                    )}
+                  </Typography>
+                </div>
+                <div className="grid sm:grid-cols-2 pb-4">
+                  <Dropdown
+                    control={control}
+                    name="appearance.fonts"
+                    placeholder={l10n.getString(
+                      'settings-interface-appearance-font-placeholder'
+                    )}
+                    /* Supports multiple items by separating them with a comma */
+                    items={fontOptions.map((option) => ({
+                      label: (
+                        <span style={{ fontFamily: option.fontName }}>
+                          {option.label}
+                        </span>
+                      ),
+                      value: option.value,
+                    }))}
+                    alignment="left"
+                  />
+                </div>
 
-            <Typography variant="section-title">
-              {l10n.getString('settings-interface-appearance-font_size')}
-            </Typography>
-            <div className="flex flex-col pt-1 pb-2">
-              <Typography>
-                {l10n.getString(
-                  'settings-interface-appearance-font_size-description'
-                )}
-              </Typography>
-            </div>
-            <div className="grid sm:grid-cols-2 pb-4">
-              <Range
-                control={control}
-                name="appearance.textSize"
-                min={10}
-                max={15}
-                step={1}
-                values={[
-                  { value: 10, label: '10pt' },
-                  { value: 11, label: '11pt' },
-                  { value: 12, label: '12pt', defaultValue: true },
-                  { value: 13, label: '13pt' },
-                  { value: 14, label: '14pt' },
-                  { value: 15, label: '15pt' },
-                ]}
-              />
-            </div>
+                <Typography variant="section-title">
+                  {l10n.getString('settings-interface-appearance-font_size')}
+                </Typography>
+                <div className="flex flex-col pt-1 pb-2">
+                  <Typography>
+                    {l10n.getString(
+                      'settings-interface-appearance-font_size-description'
+                    )}
+                  </Typography>
+                </div>
+                <div className="grid sm:grid-cols-2 pb-4">
+                  <Range
+                    control={control}
+                    name="appearance.textSize"
+                    min={10}
+                    max={15}
+                    step={1}
+                    values={[
+                      { value: 10, label: '10pt' },
+                      { value: 11, label: '11pt' },
+                      { value: 12, label: '12pt', defaultValue: true },
+                      { value: 13, label: '13pt' },
+                      { value: 14, label: '14pt' },
+                      { value: 15, label: '15pt' },
+                    ]}
+                  />
+                </div>
 
-            <Typography variant="section-title">
-              {l10n.getString('settings-general-interface-lang')}
-            </Typography>
-            <div className="flex flex-col pt-1 pb-2">
-              <Typography>
-                {l10n.getString('settings-general-interface-lang-description')}
-              </Typography>
-            </div>
-            <div className="grid sm:grid-cols-2 pb-4">
-              <LangSelector alignment="left" />
-            </div>
+                <Typography variant="section-title">
+                  {l10n.getString('settings-general-interface-lang')}
+                </Typography>
+                <div className="flex flex-col pt-1 pb-2">
+                  <Typography>
+                    {l10n.getString(
+                      'settings-general-interface-lang-description'
+                    )}
+                  </Typography>
+                </div>
+                <div className="grid sm:grid-cols-2 pb-4">
+                  <LangSelector alignment="left" />
+                </div>
+              </>
+            </SettingsPagePaneLayout>
           </>
-        </SettingsPagePaneLayout>
+        )}
       </form>
     </SettingsPageLayout>
   );

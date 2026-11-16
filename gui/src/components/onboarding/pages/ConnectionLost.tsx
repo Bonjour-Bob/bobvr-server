@@ -1,5 +1,6 @@
 import { Button } from '@/components/commons/Button';
 import { LoaderIcon, SlimeState } from '@/components/commons/icon/LoaderIcon';
+import { VitalVRLogo } from '@/components/commons/icon/VitalVRLogo';
 import { Typography } from '@/components/commons/Typography';
 import { EmptyLayout } from '@/components/EmptyLayout';
 import { useConfig } from '@/hooks/config';
@@ -52,18 +53,20 @@ function Error({ title, desc }: { title: string; desc: string }) {
   );
 }
 
-const STARTUP_VIDEO = '/videos/bob-danse.webm';
-
+// VitalVR : logo qui bat au demarrage
 function StartupVideo() {
   return (
-    <video src={STARTUP_VIDEO} width={300} autoPlay loop muted playsInline />
+    <div className="flex flex-col items-center gap-3">
+      <VitalVRLogo size={160} className="animate-pulse" />
+      <Typography variant="main-title">VitalVR</Typography>
+    </div>
   );
 }
 
-// SlimeVR Mod : ecran de demarrage, fond noir et animation
+// VitalVR : ecran de demarrage
 export function StartupSplash() {
   return (
-    <div className="h-full bg-black">
+    <div className="h-full bg-background-90">
       <EmptyLayout>
         <div className="flex w-full h-full justify-center items-center">
           <StartupVideo />
@@ -80,7 +83,7 @@ export function ConnectionLost() {
   const isCrashed = !isFirstConnection && !timedOut;
   const isTimedOut = isFirstConnection && timedOut;
   return (
-    <div className="h-full bg-black">
+    <div className="h-full bg-background-90">
       <EmptyLayout>
         <div className="flex w-full h-full justify-center items-center p-4">
           <div className="flex flex-col items-center gap-4 -mt-12">

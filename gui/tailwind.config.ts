@@ -296,6 +296,7 @@ const config = {
         'asexual-flag': `linear-gradient(135deg, ${colors['asexual'][100]} 30%, ${colors['asexual'][200]} 30% 50%, ${colors['asexual'][300]} 50% 70%, ${colors['asexual'][400]} 70% 100%)`,
         'snep': `linear-gradient(135deg, ${colors['snep'][100]} 40%, ${colors['snep'][200]} 40% 70%, ${colors['snep'][300]} 70% 100%)`,
         'noir-blanc': 'linear-gradient(135deg, #ffffff 50%, #000000 50% 100%)',
+        vitalvr: 'linear-gradient(135deg, #2EE6A8 0%, #25B9F5 50%, #0A1317 50% 100%)',
       },
       animation: {
         'spin-ccw': 'spin-ccw 1s linear infinite',
